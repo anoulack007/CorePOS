@@ -2,6 +2,7 @@ package domain
 
 import (
 	"time"
+
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -12,16 +13,16 @@ type Category struct {
 	StoreID   uuid.UUID `json:"store_id" gorm:"type:uuid;not null"`
 	Store     Store     `json:"-" gorm:"foreignKey:StoreID;constraint:OnDelete:CASCADE"`
 	Name      string    `json:"name" gorm:"type:varchar(100);not null"`
+	IconURL   string    `json:"icon_url" gorm:"type:text"`
 	CreatedAt time.Time `json:"created_at" gorm:"autoCreateTime"`
 }
 
-func (c *Category) BeforeCreate(tx *gorm.DB) error{
-	if c.ID == uuid.Nil{
+func (c *Category) BeforeCreate(tx *gorm.DB) error {
+	if c.ID == uuid.Nil {
 		c.ID = uuid.New()
 	}
 	return nil
 }
-
 
 // Product represents a sellable item in a store.
 
@@ -36,6 +37,7 @@ type Product struct {
 	CostPrice     float64        `json:"cost_price" gorm:"type:decimal(10,2);default:0.00"`
 	Price         float64        `json:"price" gorm:"type:decimal(10,2);not null"`
 	StockQuantity int            `json:"stock_quantity" gorm:"default:0"`
+	ImageURL      string         `json:"image_url" gorm:"type:text"`
 	CreatedAt     time.Time      `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt     time.Time      `json:"updated_at" gorm:"autoUpdateTime"`
 	DeletedAt     gorm.DeletedAt `json:"deleted_at,omitempty" gorm:"index"`
@@ -63,6 +65,7 @@ type InventoryMovement struct {
 	Notes           string     `json:"notes" gorm:"type:text"`
 	CreatedAt       time.Time  `json:"created_at" gorm:"autoCreateTime"`
 }
+
 func (i *InventoryMovement) BeforeCreate(tx *gorm.DB) error {
 	if i.ID == uuid.Nil {
 		i.ID = uuid.New()

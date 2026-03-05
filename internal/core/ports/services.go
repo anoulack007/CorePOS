@@ -6,7 +6,7 @@ import (
 )
 
 type ProductService interface {
-	GetAllProducts(storeID uuid.UUID) ([]domain.Product,error)
+	GetAllProducts(storeID uuid.UUID) ([]domain.Product, error)
 	GetProduct(storeID, id uuid.UUID) (*domain.Product, error)
 	CreateProduct(product *domain.Product) error
 	UpdateProduct(product *domain.Product) error
@@ -26,4 +26,9 @@ type CategoryService interface {
 	CreateCategory(category *domain.Category) error
 	UpdateCategory(category *domain.Category) error
 	DeleteCategory(storeID, id uuid.UUID) error
+}
+
+type AuthService interface {
+	Register(user *domain.User, password string) error
+	Login(username, password string) (string, error) // returns JWT token
 }
