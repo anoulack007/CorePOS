@@ -55,7 +55,7 @@ type OrderItem struct {
 	Product           *Product   `json:"product,omitempty" gorm:"foreignKey:ProductID;constraint:OnDelete:SET NULL"`
 	Quantity          int        `json:"quantity" gorm:"not null"`
 	UnitPrice         float64    `json:"unit_price" gorm:"type:decimal(10,2);not null"`
-	CostPriceSnapshot float64   `json:"cost_price_snapshot" gorm:"type:decimal(10,2);not null"`
+	CostPriceSnapshot float64    `json:"cost_price_snapshot" gorm:"type:decimal(10,2);not null"`
 	Subtotal          float64    `json:"subtotal" gorm:"type:decimal(10,2);not null"`
 }
 
@@ -72,6 +72,7 @@ type Payment struct {
 	OrderID       uuid.UUID `json:"order_id" gorm:"type:uuid;not null"`
 	Amount        float64   `json:"amount" gorm:"type:decimal(10,2);not null"`
 	PaymentMethod string    `json:"payment_method" gorm:"type:varchar(50);not null"`
+	ProofURL      string    `json:"proof_url" gorm:"type:text"`
 	PaidAt        time.Time `json:"paid_at" gorm:"autoCreateTime"`
 }
 

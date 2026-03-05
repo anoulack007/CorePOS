@@ -62,6 +62,7 @@ type InventoryMovement struct {
 	MovementType    string     `json:"movement_type" gorm:"type:varchar(50);not null"`
 	QuantityChanged int        `json:"quantity_changed" gorm:"not null"`
 	ReferenceID     *uuid.UUID `json:"reference_id" gorm:"type:uuid"`
+	EvidenceURL     string     `json:"evidence_url" gorm:"type:text"`
 	Notes           string     `json:"notes" gorm:"type:text"`
 	CreatedAt       time.Time  `json:"created_at" gorm:"autoCreateTime"`
 }
