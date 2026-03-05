@@ -53,9 +53,12 @@ func main() {
 	r.SetTrustedProxies(nil)
 
 	// Middleware
+	r.Use(middleware.RequestID())
 	r.Use(middleware.Logger())
 	r.Use(middleware.Recovery())
 	r.Use(middleware.CORS())
+	r.Use(middleware.Security())
+	r.Use(middleware.Compression())
 
 	// Health check
 	r.GET("/health", func(c *gin.Context) {
