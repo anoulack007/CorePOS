@@ -1,10 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/anoulack007/core-pos/config"
 	"github.com/anoulack007/core-pos/internal/adapters/handlers"
+	"github.com/anoulack007/core-pos/internal/adapters/middleware"
 	"github.com/anoulack007/core-pos/internal/adapters/repositories"
 	"github.com/anoulack007/core-pos/internal/core/domain"
 	"github.com/anoulack007/core-pos/internal/services"
@@ -20,10 +22,10 @@ func main() {
 	// 2. Connect to DB
 	db, err := gorm.Open(postgres.Open(cfg.DSN()), &gorm.Config{})
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		log.Fatalf("❌ Failed to connect to database: %v", err)
 	}
 
-	log.Println("Database connected successfully!")
+	log.Println("✅ Database connected successfully!")
 
 	err = db.AutoMigrate(
 		&domain.Store{},
@@ -33,40 +35,58 @@ func main() {
 	)
 
 	if err != nil {
-		log.Fatalf("Failed to migrate database: %v", err)
+		log.Fatalf("❌ Failed to migrate database: %v", err)
 	}
 
-	log.Println("Database migrated successfully!")
+	log.Println("✅ Database migrated successfully!")
 
-	// 3. Setup Repositories
+	// Repositories
 	productRepo := repositories.NewProductRepository(db)
+	// Services
 	productService := services.NewProductService(productRepo)
+	// Handlers
 	productHandler := handlers.NewProductHandler(productService)
+	storeHandler := handlers.NewStoreHandler(db)
 
-	r := gin.Default()
+	gin.SetMode(gin.ReleaseMode)
+	r := gin.New()
+	r.SetTrustedProxies(nil)
 
+	// Middleware
+	r.Use(middleware.Logger())
+	r.Use(middleware.Recovery())
+	r.Use(middleware.CORS())
+
+	// Health check
 	r.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"message": "OK",
-		})
+		c.JSON(200, gin.H{"status": "ok"})
 	})
 
 	api := r.Group("/api/v1")
+
+	// Store routes
+	api.POST("/stores", storeHandler.Create)
+	api.GET("/stores", storeHandler.GetAll)
+
+	// Store-scoped routes
 	store := api.Group("/stores/:storeId")
 	{
 		products := store.Group("/products")
 		{
 			products.GET("", productHandler.GetAll)
-			products.GET("/:id",productHandler.GetByID)
+			products.GET("/:id", productHandler.GetByID)
 			products.POST("", productHandler.Create)
 			products.PUT("/:id", productHandler.Update)
 			products.DELETE("/:id", productHandler.Delete)
 		}
 	}
 
-	log.Printf("Server starting on port %s", cfg.AppPort)
-	if err := r.Run(":" + cfg.AppPort); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+	// Start
+	port := cfg.AppPort
+	fmt.Printf("\n🚀 CorePOS API running on http://localhost:%s\n", port)
+	fmt.Printf("📋 Health: http://localhost:%s/health\n\n", port)
+	if err := r.Run(":" + port); err != nil {
+		log.Fatalf("❌ Failed to start server: %v", err)
 	}
 
 }

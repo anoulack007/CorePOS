@@ -1,0 +1,21 @@
+meta {
+  name: Create Product
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/stores/{{storeId}}/products
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "Americano",
+    "barcode": "1234567890",
+    "cost_price": 25.00,
+    "price": 55.00,
+    "stock_quantity": 100
+  }
+}
