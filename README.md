@@ -1,60 +1,130 @@
-# CorePOS
+# 🏪 CorePOS — Point of Sale API
 
-Core Point of Sale System — a multi-tenant SaaS POS backend built with Go.
+A modern POS (Point of Sale) system for retail stores, built with **Hexagonal Architecture** in Go.
 
-## Tech Stack
+## 🏗️ Tech Stack
 
-- **Go** + **Gin** (HTTP framework)
-- **GORM** (ORM) + **PostgreSQL**
-- **Hexagonal Architecture** (Ports & Adapters)
+| Technology | Purpose |
+|---|---|
+| **Go + Gin** | Web Framework |
+| **GORM** | ORM for PostgreSQL |
+| **PostgreSQL** | Primary Database |
+| **MinIO** | Object Storage (images) |
+| **UUID** | Primary Keys for all tables |
+| **Docker Compose** | Infrastructure Setup |
 
-## Project Structure
+## 📂 Project Structure
 
 ```
-corepos/
-├── cmd/api/                # Entry point (main.go)
+CorePOS/
+├── cmd/api/
+│   └── main.go              ← Entry point
+├── config/
+│   ├── config.go            ← Load env configuration
+│   ├── database.go          ← DB connection
+│   └── minio.go             ← MinIO connection
 ├── internal/
 │   ├── core/
-│   │   ├── domain/         # Data models (Product, Order, etc.)
-│   │   └── ports/          # Interfaces (Repository & Service)
-│   ├── services/           # Business logic (Service implementations)
-│   └── adapters/
-│       ├── handlers/       # HTTP handlers (Gin)
-│       ├── repositories/   # Database layer (GORM/PostgreSQL)
-│       └── storage/        # Object storage (MinIO) — future
-├── pkg/                    # Shared utilities
-├── config/                 # Environment config loader
-├── db/                     # SQL schema
-├── .env                    # Environment variables
+│   │   ├── domain/          ← Data models (Store, Product, Order, etc.)
+│   │   └── ports/           ← Interfaces (Repository, Service)
+│   ├── adapters/
+│   │   ├── handlers/        ← HTTP handlers (Gin)
+│   │   ├── repositories/    ← GORM implementations
+│   │   └── middleware/       ← Logger, CORS, Security, Compression
+│   └── services/            ← Business logic
+├── pkg/
+│   └── response.go          ← API response helpers
+├── bruno/core pos/           ← Bruno API collection
+├── docker-compose.yml
+├── .env
 └── go.mod
 ```
 
-## Getting Started
+## 🚀 Getting Started
 
-1. **Configure** — copy `.env` and set your PostgreSQL credentials
-2. **Run** — `go run cmd/api/main.go`
-3. **API Base URL** — `http://localhost:8080/api/v1/stores/:storeId`
+### 1. Start Infrastructure
 
-## API Endpoints
+```bash
+docker-compose up -d
+```
 
-| Method   | Path                                        | Description        |
-|----------|---------------------------------------------|--------------------|
-| `GET`    | `/health`                                   | Health check       |
-| `GET`    | `/api/v1/stores/:storeId/products`          | List products      |
-| `POST`   | `/api/v1/stores/:storeId/products`          | Create product     |
-| `GET`    | `/api/v1/stores/:storeId/products/:id`      | Get product        |
-| `PUT`    | `/api/v1/stores/:storeId/products/:id`      | Update product     |
-| `DELETE` | `/api/v1/stores/:storeId/products/:id`      | Delete product     |
-| `GET`    | `/api/v1/stores/:storeId/categories`        | List categories    |
-| `POST`   | `/api/v1/stores/:storeId/categories`        | Create category    |
-| `GET`    | `/api/v1/stores/:storeId/categories/:id`    | Get category       |
-| `PUT`    | `/api/v1/stores/:storeId/categories/:id`    | Update category    |
-| `DELETE` | `/api/v1/stores/:storeId/categories/:id`    | Delete category    |
-| `GET`    | `/api/v1/stores/:storeId/orders`            | List orders        |
-| `POST`   | `/api/v1/stores/:storeId/orders`            | Create order       |
-| `GET`    | `/api/v1/stores/:storeId/orders/:id`        | Get order          |
-| `PATCH`  | `/api/v1/stores/:storeId/orders/:id/void`   | Void order         |
+### 2. Configure Environment
 
-## Database Schema
+Create a `.env` file:
 
-See [`db/schema.sql`](db/schema.sql) for the full PostgreSQL schema.
+```env
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_NAME=corepos
+APP_PORT=8080
+
+MINIO_ENDPOINT=localhost:9000
+MINIO_ACCESS_KEY=minioadmin
+MINIO_SECRET_KEY=minioadmin
+```
+
+### 3. Run Application
+
+```bash
+go run cmd/api/main.go
+```
+
+### 4. Run Tests
+
+```bash
+# Run all tests
+go test ./... -v
+
+# Run specific handler tests
+go test ./internal/adapters/handlers/ -v
+
+# Run with coverage
+go test ./... -cover
+```
+
+## 📡 API Endpoints
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/health` | Health check |
+| `POST` | `/api/v1/stores` | Create a Store |
+| `GET` | `/api/v1/stores` | List all Stores |
+| `GET` | `/api/v1/stores/:storeId/products` | List all Products in a Store |
+| `GET` | `/api/v1/stores/:storeId/products/:id` | Get a Product by ID |
+| `POST` | `/api/v1/stores/:storeId/products` | Create a Product |
+| `PUT` | `/api/v1/stores/:storeId/products/:id` | Update a Product |
+| `DELETE` | `/api/v1/stores/:storeId/products/:id` | Delete a Product |
+
+## 🧪 Testing with Bruno
+
+1. Open the **Bruno** app
+2. **Open Collection** → select `bruno/core pos/`
+3. Select Environment → **Local**
+4. Test flow:
+   - `Create Store` → copy the returned UUID
+   - Paste UUID into the `storeId` environment variable
+   - `Create Product` → test full CRUD
+
+## 🛡️ Middleware
+
+| Middleware | Purpose |
+|---|---|
+| **RequestID** | Unique UUID per request for tracing |
+| **Logger** | Formatted logs with method, path, body, reqID |
+| **Recovery** | Catches panics to prevent server crashes |
+| **CORS** | Cross-Origin Resource Sharing support |
+| **Security** | Headers to prevent XSS, Clickjacking, MIME sniffing |
+| **Compression** | Gzip response compression |
+
+## 🔷 Architecture
+
+```
+HTTP Request → Handler → Service → Repository → PostgreSQL
+                 ↑            ↑           ↑
+              (Adapter)   (Core)     (Adapter)
+
+All layers communicate through Interfaces (Ports).
+Swap DB or Framework without affecting Business Logic.
+```
