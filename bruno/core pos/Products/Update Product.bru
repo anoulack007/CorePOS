@@ -1,0 +1,23 @@
+meta {
+  name: Update Product
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/stores/{{storeId}}/products/{{productId}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "Americano (Large)",
+    "price": 65.00,
+    "stock_quantity": 80
+  }
+}
+
+vars:pre-request {
+  productId: 00000000-0000-0000-0000-000000000001
+}
