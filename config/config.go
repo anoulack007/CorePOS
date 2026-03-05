@@ -8,7 +8,6 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// Config holds the application configuration loaded from environment variables.
 type Config struct {
 	DBHost     string
 	DBPort     string
@@ -16,9 +15,14 @@ type Config struct {
 	DBPassword string
 	DBName     string
 	AppPort    string
+	JWTSecret  string
+
+	MinioEndpoint  string
+	MinioAccessKey string
+	MinioSecretKey string
+	MinioBucket    string
 }
 
-// LoadConfig loads configuration from the .env file and environment variables.
 func LoadConfig() *Config {
 	err := godotenv.Load()
 	if err != nil {
@@ -32,10 +36,15 @@ func LoadConfig() *Config {
 		DBPassword: getEnv("DB_PASSWORD", "postgres"),
 		DBName:     getEnv("DB_NAME", "corepos"),
 		AppPort:    getEnv("APP_PORT", "8080"),
+		JWTSecret:  getEnv("JWT_SECRET", "your-super-secret-key"),
+
+		MinioEndpoint:  getEnv("MINIO_ENDPOINT", "localhost:9000"),
+		MinioAccessKey: getEnv("MINIO_ACCESS_KEY", "minioadmin"),
+		MinioSecretKey: getEnv("MINIO_SECRET_KEY", "minioadmin"),
+		MinioBucket:    getEnv("MINIO_BUCKET", "corepos"),
 	}
 }
 
-// DSN returns the PostgreSQL connection string.
 func (c *Config) DSN() string {
 	return fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",

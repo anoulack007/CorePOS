@@ -12,6 +12,9 @@ type Store struct {
 	ID        uuid.UUID `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 	Name      string    `json:"name" gorm:"type:varchar(255);not null"`
 	PlanType  string    `json:"plan_type" gorm:"type:varchar(50);default:'free'"`
+	LogoURL   string    `json:"logo_url" gorm:"type:text"`
+	Address   string    `json:"address" gorm:"type:text"`
+	Phone     string    `json:"phone" gorm:"type:varchar(20)"`
 	CreatedAt time.Time `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt time.Time `json:"updated_at" gorm:"autoUpdateTime"`
 }
@@ -22,7 +25,6 @@ func (s *Store) BeforeCreate(tx *gorm.DB) error {
 	}
 	return nil
 }
-
 
 // SubscriptionHistory tracks SaaS plan renewal history.
 type SubscriptionHistory struct {
@@ -42,4 +44,4 @@ func (s *SubscriptionHistory) BeforeCreate(tx *gorm.DB) error {
 		s.ID = uuid.New()
 	}
 	return nil
-}	
+}

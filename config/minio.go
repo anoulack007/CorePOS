@@ -1,26 +1,35 @@
 package config
 
 import (
+	"context"
 	"log"
-	"os"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
-func ConnectMinIO() *minio.Client {
-	endpoint := os.Getenv("MINIO_ENDPOINT")
-	accessKeyID := os.Getenv("MINIO_ACCESS_KEY")
-	secretAccessKey := os.Getenv("MINIO_SECRET_KEY")
-	useSSL := false
-
-	minioClient, err := minio.New(endpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
-		Secure: useSSL,
+func ConnectMinIO(cfg *Config) *minio.Client {
+	client, err := minio.New(cfg.MinioEndpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(cfg.MinioAccessKey, cfg.MinioSecretKey, ""),
+		Secure: false,
 	})
 	if err != nil {
-		log.Fatalf("Failed to connect to MinIO: %v", err)
+		log.Fatalf("❌ Failed to connect to MinIO: %v", err)
 	}
-	log.Println("MinIO connected successfully!")
-	return minioClient
+
+	ctx := context.Background()
+	exists, err := client.BucketExists(ctx, cfg.MinioBucket)
+	if err != nil {
+		log.Fatalf("❌ Failed to check bucket: %v", err)
+	}
+	if !exists {
+		err = client.MakeBucket(ctx, cfg.MinioBucket, minio.MakeBucketOptions{})
+		if err != nil {
+			log.Fatalf("❌ Failed to create bucket: %v", err)
+		}
+		log.Printf("✅ MinIO bucket '%s' created", cfg.MinioBucket)
+	}
+
+	log.Println("✅ MinIO connected successfully!")
+	return client
 }
