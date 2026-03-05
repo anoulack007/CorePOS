@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -22,8 +23,7 @@ func Logger() gin.HandlerFunc {
 		var bodyStr string
 		if c.Request.Body != nil {
 			bodyBytes, _ := io.ReadAll(c.Request.Body)
-			bodyStr = string(bodyBytes)
-			// Restore body for handlers
+			bodyStr = compactJSON(string(bodyBytes))
 			c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 		}
 
@@ -38,20 +38,21 @@ func Logger() gin.HandlerFunc {
 		statusColor := colorForStatus(status)
 		methodColor := colorForMethod(method)
 		reset := "\033[0m"
+		dim := "\033[90m"
 
-		// Build full path
 		fullPath := path
 		if query != "" {
 			fullPath = path + "?" + query
 		}
 
-		// Truncate body if too long
-		if len(bodyStr) > 200 {
-			bodyStr = bodyStr[:200] + "..."
+		// Truncate body
+		if len(bodyStr) > 150 {
+			bodyStr = bodyStr[:150] + "..."
 		}
 
-		// Log format
-		log.Printf("%s %3d %s | %10v | %-15s | %s %-7s %s %s",
+		// Main log line
+		fmt.Printf("\n%s%s%s\n", dim, strings.Repeat("─", 80), reset)
+		log.Printf("%s %3d %s │ %10v │ %-15s │ %s %-7s %s %s",
 			statusColor, status, reset,
 			duration.Round(time.Microsecond),
 			c.ClientIP(),
@@ -59,33 +60,45 @@ func Logger() gin.HandlerFunc {
 			fullPath,
 		)
 
-		// Log request ID + body (if present)
 		if reqID != nil {
-			fmt.Printf("         └─ reqID: %s\n", reqID)
+			fmt.Printf("  %s├─ id:   %s%s\n", dim, reset, reqID)
 		}
 		if bodyStr != "" && bodyStr != "{}" {
-			fmt.Printf("         └─ body:  %s\n", bodyStr)
+			fmt.Printf("  %s└─ body: %s%s\n", dim, reset, bodyStr)
 		}
 	}
+}
+
+// compactJSON removes newlines and extra spaces from JSON string.
+func compactJSON(s string) string {
+	s = strings.TrimSpace(s)
+	s = strings.ReplaceAll(s, "\n", "")
+	s = strings.ReplaceAll(s, "\r", "")
+	s = strings.ReplaceAll(s, "\t", "")
+	// Collapse multiple spaces
+	for strings.Contains(s, "  ") {
+		s = strings.ReplaceAll(s, "  ", " ")
+	}
+	return s
 }
 
 func colorForStatus(code int) string {
 	switch {
 	case code >= 200 && code < 300:
-		return "\033[42;30m" // Green bg, black text
+		return "\033[42;30m" // Green bg
 	case code >= 300 && code < 400:
-		return "\033[43;30m" // Yellow bg, black text
+		return "\033[43;30m" // Yellow bg
 	case code >= 400 && code < 500:
-		return "\033[41;97m" // Red bg, white text
+		return "\033[41;97m" // Red bg
 	default:
-		return "\033[45;97m" // Magenta bg, white text
+		return "\033[45;97m" // Magenta bg
 	}
 }
 
 func colorForMethod(method string) string {
 	switch method {
 	case "GET":
-		return "\033[34m" // Blue
+		return "\033[36m" // Cyan
 	case "POST":
 		return "\033[32m" // Green
 	case "PUT":
@@ -93,7 +106,7 @@ func colorForMethod(method string) string {
 	case "DELETE":
 		return "\033[31m" // Red
 	case "PATCH":
-		return "\033[36m" // Cyan
+		return "\033[35m" // Magenta
 	default:
 		return "\033[0m"
 	}
