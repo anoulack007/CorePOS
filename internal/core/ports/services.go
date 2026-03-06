@@ -30,5 +30,7 @@ type CategoryService interface {
 
 type AuthService interface {
 	Register(user *domain.User, password string) error
-	Login(username, password string) (string, error) // returns JWT token
+	Login(username, password string) (string, string, error) // returns JWT token
+	RefreshToken(token string) (newAccessToken string, newRefreshToken string, err error)
+	Logout() error
 }
