@@ -1,21 +1,29 @@
 package handlers
 
 import (
+	// "fmt"
+	"context"
+	"fmt"
 	"net/http"
+	"path/filepath"
 
+	"github.com/anoulack007/core-pos/config"
 	"github.com/anoulack007/core-pos/internal/core/domain"
 	"github.com/anoulack007/core-pos/internal/core/ports"
 	"github.com/anoulack007/core-pos/pkg"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/minio/minio-go/v7"
 )
 
 type AuthHandler struct {
 	service ports.AuthService
+	minioClient *minio.Client
+	cfg *config.Config
 }
 
-func NewAuthHandler(service ports.AuthService) *AuthHandler {
-	return &AuthHandler{service: service}
+func NewAuthHandler(service ports.AuthService, mc *minio.Client, cfg *config.Config) *AuthHandler {
+	return &AuthHandler{service: service, minioClient: mc, cfg: cfg}
 }
 
 type RegisterRequest struct {
@@ -38,31 +46,68 @@ type RefreshRequest struct {
 }
 
 func (h *AuthHandler) Register(c *gin.Context) {
-	var req RegisterRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		pkg.Error(c, http.StatusBadRequest, err.Error())
+	err := c.Request.ParseMultipartForm(10 << 20)
+	if err != nil {
+		pkg.Error(c, http.StatusBadRequest, "file too large or invalid multipart form")
 		return
 	}
-	storeID, err := uuid.Parse(req.StoreID)
+
+
+	storeIDStr := c.PostForm("store_id")
+	username := c.PostForm("username")
+	password := c.PostForm("password")
+	role := c.PostForm("role")
+	fullName := c.PostForm("full_name")
+	email := c.PostForm("email")
+	phone := c.PostForm("phone")
+
+	if storeIDStr == "" || username == "" || password == "" {
+		pkg.Error(c,http.StatusBadRequest, "store_id, username and password are required")
+		return
+	}
+
+	storeID, err := uuid.Parse(storeIDStr)
 	if err != nil {
 		pkg.Error(c, http.StatusBadRequest, "invalid store ID")
 		return
 	}
-	user := &domain.User{
-		StoreID:  storeID,
-		Username: req.Username,
-		Role:     req.Role,
-		FullName: req.FullName,
-		Email:    req.Email,
-		Phone:    req.Phone,
+
+	var avatarURL string
+
+	file, err := c.FormFile("avatar")
+
+	if err == nil {
+		filename := fmt.Sprintf("avatars/%s%s", uuid.New().String(), filepath.Ext(file.Filename))
+		src, _ := file.Open()
+		defer src.Close()
+
+		_, err = h.minioClient.PutObject(context.Background(), h.cfg.MinioBucket, filename, src, file.Size, minio.PutObjectOptions{ContentType: file.Header.Get("Content-Type"),})
+
+		if err != nil {
+			pkg.Error(c, http.StatusInternalServerError, "failed to upload avatar: " +err.Error())
+			return
+		}
+		avatarURL = "/"+h.cfg.MinioBucket + "/" + filename
 	}
-	if err := h.service.Register(user, req.Password); err != nil {
+
+	user := domain.User{
+		StoreID: storeID,
+		Username: username,
+		Role: role,
+		FullName: fullName,
+		Email: email,
+		Phone: phone,
+		AvatarURL: avatarURL,
+	}
+
+	if err := h.service.Register(&user, password); err != nil {
 		pkg.Error(c, http.StatusInternalServerError, err.Error())
 		return
 	}
+
 	pkg.Success(c, http.StatusCreated, gin.H{
-		"id":       user.ID,
-		"username": user.Username,
+		"message": "user created successfully",
+		"avatar_url": user.AvatarURL,
 	})
 }
 func (h *AuthHandler) Login(c *gin.Context) {
@@ -71,6 +116,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		pkg.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
+	// fmt.Println(req.Username, req.Password)
 	accessToken, refreshToken, err := h.service.Login(req.Username, req.Password)
 	if err != nil {
 		pkg.Error(c, http.StatusUnauthorized, err.Error())

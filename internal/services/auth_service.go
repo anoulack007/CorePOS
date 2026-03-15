@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+
 	"time"
 
 	"github.com/anoulack007/core-pos/internal/core/domain"
@@ -34,6 +35,7 @@ func (s *authService) Register(user *domain.User, password string) error {
 
 func (s *authService) Login(username, password string) (string, string, error) { 
 	user, err := s.userRepo.FindByUsername(username)
+
 	if err != nil {
 		return "", "", errors.New("invalid credentials!") 
 	}
@@ -41,8 +43,11 @@ func (s *authService) Login(username, password string) (string, string, error) {
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
 		return "", "", errors.New("invalid credentials") 
 	}
+
+
 	accessToken, _ := s.generateToken(user, 15*time.Minute)
 	refreshToken, _ := s.generateToken(user, 7*24*time.Hour)
+	
 	return accessToken, refreshToken, nil 
 }
 
@@ -91,6 +96,6 @@ func (s *authService) generateToken(user *domain.User, duration time.Duration) (
 		"iat": time.Now().Unix(),
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return  token.SignedString([]byte(s.jwtSecret))
 }

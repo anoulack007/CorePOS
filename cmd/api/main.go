@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+
 	"github.com/anoulack007/core-pos/config"
 	"github.com/anoulack007/core-pos/internal/adapters/handlers"
 	"github.com/anoulack007/core-pos/internal/adapters/middleware"
@@ -41,6 +42,8 @@ func main() {
 		log.Fatalf("❌ Failed to migrate database: %v", err)
 	}
 
+	minioClient := config.ConnectMinIO(cfg)
+
 	log.Println("✅ Database migrated successfully!")
 
 	// Repositories
@@ -52,7 +55,7 @@ func main() {
 	// Handlers
 	productHandler := handlers.NewProductHandler(productService)
 	storeHandler := handlers.NewStoreHandler(db)
-	authHandler := handlers.NewAuthHandler(authService)
+	authHandler := handlers.NewAuthHandler(authService, minioClient, cfg)
 
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
