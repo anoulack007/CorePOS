@@ -45,11 +45,14 @@ func main() {
 
 	// Repositories
 	productRepo := repositories.NewProductRepository(db)
+	userRepo := repositories.NewUserRepository(db)
 	// Services
 	productService := services.NewProductService(productRepo)
+	authService := services.NewAuthService(userRepo,cfg.JWTSecret)
 	// Handlers
 	productHandler := handlers.NewProductHandler(productService)
 	storeHandler := handlers.NewStoreHandler(db)
+	authHandler := handlers.NewAuthHandler(authService)
 
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
@@ -73,6 +76,14 @@ func main() {
 	// Store routes
 	api.POST("/stores", storeHandler.Create)
 	api.GET("/stores", storeHandler.GetAll)
+
+	auth := api.Group("/auth")
+	{
+		auth.POST("/register", authHandler.Register)
+		auth.POST("/login", authHandler.Login)
+		auth.POST("/refresh", authHandler.Refresh)
+		auth.POST("/logout", authHandler.Logout)
+	} 
 
 	// Store-scoped routes
 	store := api.Group("/stores/:storeId")

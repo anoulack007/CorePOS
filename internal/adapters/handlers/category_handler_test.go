@@ -11,10 +11,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func setupProductRouter() *gin.Engine {
+func setupCategoryRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
-	r.POST("/products", func(c *gin.Context) {
+	r.POST("/categories", func(c *gin.Context) {
 		var body map[string]interface{}
 		if err := c.ShouldBindJSON(&body); err != nil {
 			c.JSON(400, gin.H{"success": false, "error": err.Error()})
@@ -25,12 +25,12 @@ func setupProductRouter() *gin.Engine {
 	return r
 }
 
-func TestProductCreate_200(t *testing.T) {
-	r := setupProductRouter()
-	body := fmt.Sprintf(`{"name":"%s", "price": %.2f, "stock_quantity": %d}`, gofakeit.ProductName(), gofakeit.Price(10, 1000), gofakeit.Number(1, 100))
+func TestCategoryCreate_200(t *testing.T) {
+	r := setupCategoryRouter()
+	body := fmt.Sprintf(`{"name":"%s"}`, gofakeit.Word())
 
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/products", strings.NewReader(body))
+	req, _ := http.NewRequest("POST", "/categories", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
 
@@ -39,10 +39,10 @@ func TestProductCreate_200(t *testing.T) {
 	}
 }
 
-func TestProductCreate_400(t *testing.T) {
-	r := setupProductRouter()
+func TestCategoryCreate_400(t *testing.T) {
+	r := setupCategoryRouter()
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/products", strings.NewReader(`{invalid json}`))
+	req, _ := http.NewRequest("POST", "/categories", strings.NewReader(`{invalid json}`))
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
 

@@ -11,38 +11,37 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func setupProductRouter() *gin.Engine {
+func setupAuthRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
-	r.POST("/products", func(c *gin.Context) {
+	r.POST("/auth/login", func(c *gin.Context) {
 		var body map[string]interface{}
 		if err := c.ShouldBindJSON(&body); err != nil {
 			c.JSON(400, gin.H{"success": false, "error": err.Error()})
 			return
 		}
-		c.JSON(200, gin.H{"success": true})
+		c.JSON(200, gin.H{"success": true, "access_token": "mock-token"})
 	})
 	return r
 }
 
-func TestProductCreate_200(t *testing.T) {
-	r := setupProductRouter()
-	body := fmt.Sprintf(`{"name":"%s", "price": %.2f, "stock_quantity": %d}`, gofakeit.ProductName(), gofakeit.Price(10, 1000), gofakeit.Number(1, 100))
-
+func TestAuthLogin_200(t *testing.T) {
+	r := setupAuthRouter()
+	body := fmt.Sprintf(`{"username":"%s","password":"%s"}`, gofakeit.Username(), gofakeit.Password(true, true, true, true, false, 8))
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/products", strings.NewReader(body))
+	req, _ := http.NewRequest("POST", "/auth/login", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
 
 	if w.Code != 200 {
-		t.Errorf("expected 200, got %d", w.Code)
+		t.Errorf("expected 200, got %d, body: %s", w.Code, w.Body.String())
 	}
 }
 
-func TestProductCreate_400(t *testing.T) {
-	r := setupProductRouter()
+func TestAuthLogin_400(t *testing.T) {
+	r := setupAuthRouter()
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/products", strings.NewReader(`{invalid json}`))
+	req, _ := http.NewRequest("POST", "/auth/login", strings.NewReader(`{invalid json}`))
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
 

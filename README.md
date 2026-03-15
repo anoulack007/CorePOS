@@ -168,7 +168,9 @@ erDiagram
 | Method | Path | Description |
 |---|---|---|
 | `POST` | `/api/v1/auth/register` | Register a new user |
-| `POST` | `/api/v1/auth/login` | Login and get JWT |
+| `POST` | `/api/v1/auth/login` | Login and get Access & Refresh tokens |
+| `POST` | `/api/v1/auth/refresh` | Refresh an Access token |
+| `POST` | `/api/v1/auth/logout` | Logout (Stateless) |
 
 ### Stores
 | Method | Path | Description |
@@ -210,9 +212,11 @@ erDiagram
 3. Select Environment → **Local**
 4. Test flow:
    - `Create Store` → copy returned UUID to environment `storeId`
-   - `Register User` → create credentials
-   - `Login` → copy returned `token` to environment `token`
-   - Now you can test all protected routes (Products, Categories, Orders)
+   - `Register` → create credentials using `store_id`
+   - `Login` → copy returned `access_token` to environment `token` and `refresh_token` to environment `refresh_token`
+   - `Refresh Token` → test refreshing your access token
+   - Now you can test all protected routes (Products, Categories, Orders) using Bearer auth
+   - `Logout` → test the logout response (client discards token)
 
 ## 🛡️ Middleware
 

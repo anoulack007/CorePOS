@@ -1,20 +1,18 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
-	"github.com/brianvoe/gofakeit/v6"
 	"github.com/gin-gonic/gin"
 )
 
-func setupProductRouter() *gin.Engine {
+func setupOrderRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
-	r.POST("/products", func(c *gin.Context) {
+	r.POST("/orders", func(c *gin.Context) {
 		var body map[string]interface{}
 		if err := c.ShouldBindJSON(&body); err != nil {
 			c.JSON(400, gin.H{"success": false, "error": err.Error()})
@@ -25,12 +23,14 @@ func setupProductRouter() *gin.Engine {
 	return r
 }
 
-func TestProductCreate_200(t *testing.T) {
-	r := setupProductRouter()
-	body := fmt.Sprintf(`{"name":"%s", "price": %.2f, "stock_quantity": %d}`, gofakeit.ProductName(), gofakeit.Price(10, 1000), gofakeit.Number(1, 100))
+func TestOrderCreate_200(t *testing.T) {
+	r := setupOrderRouter()
+
+	// Mock order with items
+	body := `{"items": [{"product_id": "8aa1c720-379a-412f-90b1-4700d8cb30fc", "quantity": 2}]}`
 
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/products", strings.NewReader(body))
+	req, _ := http.NewRequest("POST", "/orders", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
 
@@ -39,10 +39,10 @@ func TestProductCreate_200(t *testing.T) {
 	}
 }
 
-func TestProductCreate_400(t *testing.T) {
-	r := setupProductRouter()
+func TestOrderCreate_400(t *testing.T) {
+	r := setupOrderRouter()
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/products", strings.NewReader(`{invalid json}`))
+	req, _ := http.NewRequest("POST", "/orders", strings.NewReader(`{invalid json}`))
 	req.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w, req)
 
