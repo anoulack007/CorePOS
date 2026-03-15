@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 
-
 	"github.com/anoulack007/core-pos/config"
 	"github.com/anoulack007/core-pos/internal/adapters/handlers"
 	"github.com/anoulack007/core-pos/internal/adapters/middleware"
@@ -51,7 +50,7 @@ func main() {
 	userRepo := repositories.NewUserRepository(db)
 	// Services
 	productService := services.NewProductService(productRepo)
-	authService := services.NewAuthService(userRepo,cfg.JWTSecret)
+	authService := services.NewAuthService(userRepo, cfg.JWTSecret)
 	// Handlers
 	productHandler := handlers.NewProductHandler(productService)
 	storeHandler := handlers.NewStoreHandler(db)
@@ -86,7 +85,7 @@ func main() {
 		auth.POST("/login", authHandler.Login)
 		auth.POST("/refresh", authHandler.Refresh)
 		auth.POST("/logout", authHandler.Logout)
-	} 
+	}
 
 	// Store-scoped routes
 	store := api.Group("/stores/:storeId")

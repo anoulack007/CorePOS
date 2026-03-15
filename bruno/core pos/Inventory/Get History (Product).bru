@@ -1,0 +1,15 @@
+meta {
+  name: Get History (Specific Product)
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/stores/{{storeId}}/inventory/history/{{productId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}

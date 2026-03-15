@@ -7,16 +7,16 @@ import (
 
 type ProductRepository interface {
 	FindAll(storeID uuid.UUID) ([]domain.Product, error)
-	FindByID(storeID, id uuid.UUID) (*domain.Product,error)
-	FindByBarcode(storeID uuid.UUID, barcode string) (*domain.Product,error)
+	FindByID(storeID, id uuid.UUID) (*domain.Product, error)
+	FindByBarcode(storeID uuid.UUID, barcode string) (*domain.Product, error)
 	Create(product *domain.Product) error
 	Update(product *domain.Product) error
 	Delete(storeId, id uuid.UUID) error
 }
 
 type CategoryRepository interface {
-	FindAll(storeID uuid.UUID) ([]domain.Category,error)
-	FindByID(storeID,id uuid.UUID) (*domain.Category, error)
+	FindAll(storeID uuid.UUID) ([]domain.Category, error)
+	FindByID(storeID, id uuid.UUID) (*domain.Category, error)
 	Create(category *domain.Category) error
 	Update(category *domain.Category) error
 	Delete(storeID, id uuid.UUID) error

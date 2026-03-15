@@ -1,0 +1,25 @@
+meta {
+  name: Adjust Stock
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/stores/{{storeId}}/inventory/adjust
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "product_id": "{{productId}}",
+    "quantity_changed": 10,
+    "movement_type": "RESTOCK",
+    "notes": "Weekly restock",
+    "evidence_url": ""
+  }
+}
