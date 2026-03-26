@@ -48,13 +48,17 @@ func main() {
 	// Repositories
 	productRepo := repositories.NewProductRepository(db)
 	userRepo := repositories.NewUserRepository(db)
+	categoryRepo := repositories.NewCategoryRepository(db)
+
 	// Services
 	productService := services.NewProductService(productRepo)
 	authService := services.NewAuthService(userRepo, cfg.JWTSecret)
+	categoryService := services.NewCategoryService(categoryRepo)
 	// Handlers
 	productHandler := handlers.NewProductHandler(productService)
 	storeHandler := handlers.NewStoreHandler(db)
 	authHandler := handlers.NewAuthHandler(authService, minioClient, cfg)
+	categoryHandler := handlers.NewCategoryHandler(categoryService)
 
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
@@ -98,6 +102,15 @@ func main() {
 			products.PUT("/:id", productHandler.Update)
 			products.DELETE("/:id", productHandler.Delete)
 		}
+	}
+
+	categories := store.Group("/categories")
+	{
+		categories.GET("",categoryHandler.GetAll)
+		categories.GET("/:id",categoryHandler.GetByID)
+		categories.POST("", categoryHandler.Update)
+		categories.PUT("/:id",categoryHandler.Update)
+		categories.DELETE("/:id",categoryHandler.Delete)
 	}
 
 	// Start
