@@ -88,11 +88,12 @@ func main() {
 		auth.POST("/register", authHandler.Register)
 		auth.POST("/login", authHandler.Login)
 		auth.POST("/refresh", authHandler.Refresh)
-		auth.POST("/logout", authHandler.Logout)
+		auth.POST("/logout", middleware.Auth(cfg.JWTSecret), authHandler.Logout)
 	}
 
 	// Store-scoped routes
 	store := api.Group("/stores/:storeId")
+	store.Use(middleware.Auth(cfg.JWTSecret), middleware.AuthorizeStoreAccess())
 	{
 		products := store.Group("/products")
 		{
@@ -102,15 +103,15 @@ func main() {
 			products.PUT("/:id", productHandler.Update)
 			products.DELETE("/:id", productHandler.Delete)
 		}
-	}
 
-	categories := store.Group("/categories")
-	{
-		categories.GET("",categoryHandler.GetAll)
-		categories.GET("/:id",categoryHandler.GetByID)
-		categories.POST("", categoryHandler.Update)
-		categories.PUT("/:id",categoryHandler.Update)
-		categories.DELETE("/:id",categoryHandler.Delete)
+		categories := store.Group("/categories")
+		{
+			categories.GET("", categoryHandler.GetAll)
+			categories.GET("/:id", categoryHandler.GetByID)
+			categories.POST("", categoryHandler.Create)
+			categories.PUT("/:id", categoryHandler.Update)
+			categories.DELETE("/:id", categoryHandler.Delete)
+		}
 	}
 
 	// Start

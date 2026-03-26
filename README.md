@@ -166,6 +166,52 @@ The following middleware is actively applied in [main.go](/D:/Tutorial/CorePOS/c
 
 Note: JWT auth middleware exists in the project, but it is not currently attached to protected routes in `main.go`.
 
+## Recommended API Usage Order
+
+Because most entities depend on `store_id`, the recommended creation flow should start from the store and move outward to dependent records.
+
+### Recommended business order
+
+```text
+Store
+-> User
+-> Login
+-> Category
+-> Product
+-> Order
+-> Payment
+-> Inventory Movement
+```
+
+### Why this order
+
+1. `Store` should be created first because `users`, `categories`, `products`, `orders`, and `inventory_movements` all belong to a store.
+2. `User` should be created after the store because each user requires `store_id`.
+3. `Login` comes next so the client can obtain access and refresh tokens.
+4. `Category` should be created before products if you want products grouped properly.
+5. `Product` depends on `store_id` and may optionally depend on `category_id`.
+6. `Order` should come after products and users because an order belongs to a store and is created by a user.
+7. `Payment` depends on an existing order.
+8. `Inventory Movement` depends on an existing product and usually relates to ordering, adjustment, or stock operations.
+
+### Current practical order in this codebase
+
+Based on the routes currently registered in [main.go](/D:/Tutorial/CorePOS/cmd/api/main.go), the working API flow today is:
+
+```text
+Create Store
+-> Register User
+-> Login
+-> Create Product
+```
+
+That is because:
+
+1. Store routes are implemented
+2. Auth routes are implemented
+3. Product routes are implemented
+4. Category, order, and inventory flows are not completed yet
+
 ## ERD
 
 The domain layer models the following entity relationships.
