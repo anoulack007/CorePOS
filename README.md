@@ -51,10 +51,15 @@ DB_PASSWORD=postgres
 DB_NAME=corepos
 APP_PORT=8080
 
+JWT_SECRET=your-long-random-secret
+
 MINIO_ENDPOINT=localhost:9000
 MINIO_ACCESS_KEY=minioadmin
 MINIO_SECRET_KEY=minioadmin
+MINIO_BUCKET=corepos
 ```
+
+All environment variables above are required by [config.go](/D:/Tutorial/CorePOS/config/config.go). The application now fails fast at startup if any required key is missing.
 
 ### 3. Run the API
 
@@ -104,6 +109,16 @@ The routes below are the ones actually registered in [main.go](/D:/Tutorial/Core
 | `PUT` | `/api/v1/stores/:storeId/products/:id` | Update a product |
 | `DELETE` | `/api/v1/stores/:storeId/products/:id` | Delete a product |
 
+### Category
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/v1/stores/:storeId/categories` | List store categories |
+| `GET` | `/api/v1/stores/:storeId/categories/:id` | Get one category |
+| `POST` | `/api/v1/stores/:storeId/categories` | Create a category |
+| `PUT` | `/api/v1/stores/:storeId/categories/:id` | Update a category |
+| `DELETE` | `/api/v1/stores/:storeId/categories/:id` | Delete a category |
+
 ## Services
 
 Service interfaces are defined in [services.go](/D:/Tutorial/CorePOS/internal/core/ports/services.go).
@@ -113,7 +128,7 @@ Service interfaces are defined in [services.go](/D:/Tutorial/CorePOS/internal/co
 | AuthService | [auth_service.go](/D:/Tutorial/CorePOS/internal/services/auth_service.go) | Implemented | Register, login, refresh token, logout |
 | ProductService | [product_service.go](/D:/Tutorial/CorePOS/internal/services/product_service.go) | Implemented | Product CRUD |
 | InventoryService | [inventory_service.go](/D:/Tutorial/CorePOS/internal/services/inventory_service.go) | Partial | Constructor exists, business logic is not implemented yet |
-| CategoryService | [category_service.go](/D:/Tutorial/CorePOS/internal/services/category_service.go) | Stub | Not implemented |
+| CategoryService | [category_service.go](/D:/Tutorial/CorePOS/internal/services/category_service.go) | Implemented | Category CRUD |
 | OrderService | [order_service.go](/D:/Tutorial/CorePOS/internal/services/order_service.go) | Stub | Not implemented |
 
 ## Request Flow
@@ -163,8 +178,17 @@ The following middleware is actively applied in [main.go](/D:/Tutorial/CorePOS/c
 4. CORS
 5. Security
 6. Compression
+7. JWT authentication for protected routes
+8. Store-level authorization for `/stores/:storeId/...`
+9. Role-based authorization for write operations
 
-Note: JWT auth middleware exists in the project, but it is not currently attached to protected routes in `main.go`.
+Current authorization policy:
+
+1. All routes under `/api/v1/stores/:storeId/...` require a valid Bearer token.
+2. The `store_id` in the token must match the `storeId` path parameter.
+3. `GET` routes are accessible to authenticated users in the same store.
+4. `POST`, `PUT`, and `DELETE` for products and categories require `owner` or `admin`.
+5. `POST /api/v1/auth/logout` also requires authentication.
 
 ## Recommended API Usage Order
 
@@ -202,6 +226,7 @@ Based on the routes currently registered in [main.go](/D:/Tutorial/CorePOS/cmd/a
 Create Store
 -> Register User
 -> Login
+-> Create Category
 -> Create Product
 ```
 
@@ -210,7 +235,8 @@ That is because:
 1. Store routes are implemented
 2. Auth routes are implemented
 3. Product routes are implemented
-4. Category, order, and inventory flows are not completed yet
+4. Category routes are implemented
+5. Order and inventory flows are not completed yet
 
 ## ERD
 
@@ -461,16 +487,18 @@ Implemented and usable now:
 1. Store routes
 2. Auth routes
 3. Product routes
-4. Base middleware stack
-5. Avatar upload during registration
+4. Category routes
+5. Base middleware stack
+6. JWT authentication and store-based authorization
+7. Role-based authorization for product/category write routes
+8. Avatar upload during registration
 
 Not complete yet:
 
-1. Category service and routes are not implemented
-2. Order service and routes are not implemented
-3. Inventory service logic is incomplete
-4. Upload route mentioned in older README content is not registered in `main.go`
-5. JWT auth middleware is not enforced on protected routes
+1. Order service and routes are not implemented
+2. Inventory service logic is incomplete
+3. Upload route mentioned in older README content is not registered in `main.go`
+4. Role handling is present, but some internals still use raw string role checks instead of a full enum flow end-to-end
 
 ## Verification
 
@@ -479,3 +507,8 @@ The project currently passes:
 ```bash
 go test ./...
 ```
+
+Packages with active tests right now:
+
+1. `internal/adapters/handlers`
+2. `internal/adapters/middleware`
