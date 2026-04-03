@@ -36,7 +36,7 @@ func LoadConfig() *Config {
 		DBPassword: getEnv("DB_PASSWORD", "postgres"),
 		DBName:     getEnv("DB_NAME", "corepos"),
 		AppPort:    getEnv("APP_PORT", "8080"),
-		JWTSecret:  getEnv("JWT_SECRET", "your-super-secret-key"),
+		JWTSecret:  getEnv("JWT_SECRET", ""),
 
 		MinioEndpoint:  getEnv("MINIO_ENDPOINT", "localhost:9000"),
 		MinioAccessKey: getEnv("MINIO_ACCESS_KEY", "minioadmin"),

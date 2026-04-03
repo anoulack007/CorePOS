@@ -99,18 +99,18 @@ func main() {
 		{
 			products.GET("", productHandler.GetAll)
 			products.GET("/:id", productHandler.GetByID)
-			products.POST("", productHandler.Create)
-			products.PUT("/:id", productHandler.Update)
-			products.DELETE("/:id", productHandler.Delete)
+			products.POST("", middleware.RequireRoles("owner", "admin"), productHandler.Create)
+			products.PUT("/:id", middleware.RequireRoles("owner", "admin"), productHandler.Update)
+			products.DELETE("/:id", middleware.RequireRoles("owner", "admin"), productHandler.Delete)
 		}
 
 		categories := store.Group("/categories")
 		{
 			categories.GET("", categoryHandler.GetAll)
 			categories.GET("/:id", categoryHandler.GetByID)
-			categories.POST("", categoryHandler.Create)
-			categories.PUT("/:id", categoryHandler.Update)
-			categories.DELETE("/:id", categoryHandler.Delete)
+			categories.POST("", middleware.RequireRoles("owner", "admin"), categoryHandler.Create)
+			categories.PUT("/:id", middleware.RequireRoles("owner", "admin"), categoryHandler.Update)
+			categories.DELETE("/:id", middleware.RequireRoles("owner", "admin"), categoryHandler.Delete)
 		}
 	}
 

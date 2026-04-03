@@ -7,6 +7,14 @@ import (
 	"gorm.io/gorm"
 )
 
+type UserRole string
+
+const (
+	RoleOwner   UserRole = "owner"
+	RoleAdmin   UserRole = "admin"
+	RoleCashier UserRole = "cashier"
+)
+
 // User represents a staff member or cashier belonging to a store.
 type User struct {
 	ID           uuid.UUID `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
@@ -14,7 +22,7 @@ type User struct {
 	Store        Store     `json:"-" gorm:"foreignKey:StoreID;constraint:OnDelete:CASCADE"`
 	Username     string    `json:"username" gorm:"type:varchar(100);uniqueIndex;not null"`
 	PasswordHash string    `json:"-" gorm:"type:varchar(255);not null"`
-	Role         string    `json:"role" gorm:"type:varchar(50);default:'cashier'"`
+	Role         UserRole  `json:"role" gorm:"type:varchar(50);default:'cashier'"`
 	FullName     string    `json:"full_name" gorm:"type:varchar(255)"`
 	Email        string    `json:"email" gorm:"type:varchar(255)"`
 	Phone        string    `json:"phone" gorm:"type:varchar(20)"`
@@ -28,4 +36,23 @@ func (u *User) BeforeCreate(tx *gorm.DB) error {
 		u.ID = uuid.New()
 	}
 	return nil
+}
+
+
+func (r UserRole) IsValid() bool {
+	switch r {
+	case RoleOwner, RoleAdmin, RoleCashier:
+		return true
+	default:
+		return false
+	}
+}
+
+
+func NoralizeUserRole(role string) UserRole {
+	r := UserRole(role)
+	if !r.IsValid() {
+		return RoleCashier
+	}
+	return r
 }

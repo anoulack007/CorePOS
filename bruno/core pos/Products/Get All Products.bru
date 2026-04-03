@@ -7,5 +7,9 @@ meta {
 get {
   url: {{baseUrl}}/stores/{{storeId}}/products
   body: none
-  auth: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
 }

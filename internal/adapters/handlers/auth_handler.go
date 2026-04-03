@@ -9,6 +9,7 @@ import (
 
 	"github.com/anoulack007/core-pos/config"
 	"github.com/anoulack007/core-pos/internal/core/domain"
+	"github.com/anoulack007/core-pos/internal/core/dto"
 	"github.com/anoulack007/core-pos/internal/core/ports"
 	"github.com/anoulack007/core-pos/pkg"
 	"github.com/gin-gonic/gin"
@@ -17,32 +18,13 @@ import (
 )
 
 type AuthHandler struct {
-	service ports.AuthService
+	service     ports.AuthService
 	minioClient *minio.Client
-	cfg *config.Config
+	cfg         *config.Config
 }
 
 func NewAuthHandler(service ports.AuthService, mc *minio.Client, cfg *config.Config) *AuthHandler {
 	return &AuthHandler{service: service, minioClient: mc, cfg: cfg}
-}
-
-type RegisterRequest struct {
-	StoreID  string `json:"store_id" binding:"required"`
-	Username string `json:"username" binding:"required"`
-	Password string `json:"password" binding:"required,min=6"`
-	Role     string `json:"role"`
-	FullName string `json:"full_name"`
-	Email    string `json:"email"`
-	Phone    string `json:"phone"`
-}
-
-type LoginRequest struct {
-	Username string `json:"username" binding:"required"`
-	Password string `json:"password" binding:"required"`
-}
-
-type RefreshRequest struct {
-	RefreshToken string `json:"refresh_token" binding:"required"`
 }
 
 func (h *AuthHandler) Register(c *gin.Context) {
@@ -51,7 +33,6 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		pkg.Error(c, http.StatusBadRequest, "file too large or invalid multipart form")
 		return
 	}
-
 
 	storeIDStr := c.PostForm("store_id")
 	username := c.PostForm("username")
@@ -62,7 +43,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	phone := c.PostForm("phone")
 
 	if storeIDStr == "" || username == "" || password == "" {
-		pkg.Error(c,http.StatusBadRequest, "store_id, username and password are required")
+		pkg.Error(c, http.StatusBadRequest, "store_id, username and password are required")
 		return
 	}
 
@@ -81,22 +62,22 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		src, _ := file.Open()
 		defer src.Close()
 
-		_, err = h.minioClient.PutObject(context.Background(), h.cfg.MinioBucket, filename, src, file.Size, minio.PutObjectOptions{ContentType: file.Header.Get("Content-Type"),})
+		_, err = h.minioClient.PutObject(context.Background(), h.cfg.MinioBucket, filename, src, file.Size, minio.PutObjectOptions{ContentType: file.Header.Get("Content-Type")})
 
 		if err != nil {
-			pkg.Error(c, http.StatusInternalServerError, "failed to upload avatar: " +err.Error())
+			pkg.Error(c, http.StatusInternalServerError, "failed to upload avatar: "+err.Error())
 			return
 		}
-		avatarURL = "/"+h.cfg.MinioBucket + "/" + filename
+		avatarURL = "/" + h.cfg.MinioBucket + "/" + filename
 	}
 
 	user := domain.User{
-		StoreID: storeID,
-		Username: username,
-		Role: role,
-		FullName: fullName,
-		Email: email,
-		Phone: phone,
+		StoreID:   storeID,
+		Username:  username,
+		Role:      domain.NoralizeUserRole(role),
+		FullName:  fullName,
+		Email:     email,
+		Phone:     phone,
 		AvatarURL: avatarURL,
 	}
 
@@ -106,12 +87,12 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	}
 
 	pkg.Success(c, http.StatusCreated, gin.H{
-		"message": "user created successfully",
+		"message":    "user created successfully",
 		"avatar_url": user.AvatarURL,
 	})
 }
 func (h *AuthHandler) Login(c *gin.Context) {
-	var req LoginRequest
+	var req dto.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		pkg.Error(c, http.StatusBadRequest, err.Error())
 		return
@@ -129,7 +110,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 }
 
 func (h *AuthHandler) Refresh(c *gin.Context) {
-	var req RefreshRequest
+	var req dto.RefreshRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		pkg.Error(c, http.StatusBadRequest, err.Error())
 		return

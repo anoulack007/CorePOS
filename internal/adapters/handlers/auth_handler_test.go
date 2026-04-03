@@ -20,7 +20,7 @@ func setupAuthRouter() *gin.Engine {
 			c.JSON(400, gin.H{"success": false, "error": err.Error()})
 			return
 		}
-		c.JSON(200, gin.H{"success": true, "access_token": "mock-token"})
+		c.JSON(200, gin.H{"success": true, "access_token": gofakeit.LetterN(32)})
 	})
 	return r
 }

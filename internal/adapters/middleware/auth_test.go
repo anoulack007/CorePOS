@@ -90,6 +90,29 @@ func TestRequireRoles_BlocksDisallowedRole(t *testing.T) {
 	}
 }
 
+func TestRequireRoles_AllowsAllowedRole(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	secret := "test-secret"
+	storeID := uuid.New()
+	userID := uuid.New()
+
+	r := gin.New()
+	r.POST("/admin", Auth(secret), RequireRoles("owner", "admin"), func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"success": true})
+	})
+
+	req := httptest.NewRequest(http.MethodPost, "/admin", nil)
+	req.Header.Set("Authorization", "Bearer "+signedToken(t, secret, userID, storeID, "admin"))
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", w.Code)
+	}
+}
+
 func signedToken(t *testing.T, secret string, userID, storeID uuid.UUID, role string) string {
 	t.Helper()
 

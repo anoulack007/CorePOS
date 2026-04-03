@@ -158,3 +158,5 @@ func getUUIDClaim(claims jwt.MapClaims, key string) (uuid.UUID, error) {
 
 	return uuid.Parse(value)
 }
+
+
