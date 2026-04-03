@@ -30,18 +30,18 @@ func LoadConfig() *Config {
 	}
 
 	return &Config{
-		DBHost:     getEnv("DB_HOST", "localhost"),
-		DBPort:     getEnv("DB_PORT", "5432"),
-		DBUser:     getEnv("DB_USER", "postgres"),
-		DBPassword: getEnv("DB_PASSWORD", "postgres"),
-		DBName:     getEnv("DB_NAME", "corepos"),
-		AppPort:    getEnv("APP_PORT", "8080"),
-		JWTSecret:  getEnv("JWT_SECRET", ""),
+		DBHost:     mustGetEnv("DB_HOST"),
+		DBPort:     mustGetEnv("DB_PORT"),
+		DBUser:     mustGetEnv("DB_USER"),
+		DBPassword: mustGetEnv("DB_PASSWORD"),
+		DBName:     mustGetEnv("DB_NAME"),
+		AppPort:    mustGetEnv("APP_PORT"),
+		JWTSecret:  mustGetEnv("JWT_SECRET"),
 
-		MinioEndpoint:  getEnv("MINIO_ENDPOINT", "localhost:9000"),
-		MinioAccessKey: getEnv("MINIO_ACCESS_KEY", "minioadmin"),
-		MinioSecretKey: getEnv("MINIO_SECRET_KEY", "minioadmin"),
-		MinioBucket:    getEnv("MINIO_BUCKET", "corepos"),
+		MinioEndpoint:  mustGetEnv("MINIO_ENDPOINT"),
+		MinioAccessKey: mustGetEnv("MINIO_ACCESS_KEY"),
+		MinioSecretKey: mustGetEnv("MINIO_SECRET_KEY"),
+		MinioBucket:    mustGetEnv("MINIO_BUCKET"),
 	}
 }
 
@@ -52,9 +52,10 @@ func (c *Config) DSN() string {
 	)
 }
 
-func getEnv(key, fallback string) string {
-	if value, exists := os.LookupEnv(key); exists {
-		return value
+func mustGetEnv(key string) string {
+	value, exists := os.LookupEnv(key)
+	if !exists || value == "" {
+		log.Fatalf("Missing required environment variable: %s", key)
 	}
-	return fallback
+	return value
 }
