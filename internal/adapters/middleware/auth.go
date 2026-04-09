@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/anoulack007/core-pos/pkg"
+	"github.com/anoulack007/core-pos/pkg/util"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -58,14 +59,14 @@ func Auth(jwtSecret string) gin.HandlerFunc {
 			return
 		}
 
-		userID, err := getUUIDClaim(claims, ContextUserIDKey)
+		userID, err := util.GetUUIDClaim(claims, ContextUserIDKey)
 		if err != nil {
 			pkg.Error(c, http.StatusUnauthorized, "invalid user_id in token")
 			c.Abort()
 			return
 		}
 
-		storeID, err := getUUIDClaim(claims, ContextStoreIDKey)
+		storeID, err := util.GetUUIDClaim(claims, ContextStoreIDKey)
 		if err != nil {
 			pkg.Error(c, http.StatusUnauthorized, "invalid store_id in token")
 			c.Abort()
@@ -149,14 +150,3 @@ func RequireRoles(allowedRoles ...string) gin.HandlerFunc {
 		c.Next()
 	}
 }
-
-func getUUIDClaim(claims jwt.MapClaims, key string) (uuid.UUID, error) {
-	value, ok := claims[key].(string)
-	if !ok {
-		return uuid.Nil, jwt.ErrTokenInvalidClaims
-	}
-
-	return uuid.Parse(value)
-}
-
-

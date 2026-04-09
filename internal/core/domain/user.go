@@ -37,8 +37,6 @@ func (u *User) BeforeCreate(tx *gorm.DB) error {
 	}
 	return nil
 }
-
-
 func (r UserRole) IsValid() bool {
 	switch r {
 	case RoleOwner, RoleAdmin, RoleCashier:
@@ -46,13 +44,4 @@ func (r UserRole) IsValid() bool {
 	default:
 		return false
 	}
-}
-
-
-func NoralizeUserRole(role string) UserRole {
-	r := UserRole(role)
-	if !r.IsValid() {
-		return RoleCashier
-	}
-	return r
 }

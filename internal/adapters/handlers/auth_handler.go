@@ -12,6 +12,7 @@ import (
 	"github.com/anoulack007/core-pos/internal/core/dto"
 	"github.com/anoulack007/core-pos/internal/core/ports"
 	"github.com/anoulack007/core-pos/pkg"
+	"github.com/anoulack007/core-pos/pkg/util"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
@@ -74,7 +75,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	user := domain.User{
 		StoreID:   storeID,
 		Username:  username,
-		Role:      domain.NoralizeUserRole(role),
+		Role:      util.NormalizeUserRole(role),
 		FullName:  fullName,
 		Email:     email,
 		Phone:     phone,
