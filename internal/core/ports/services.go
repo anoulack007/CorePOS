@@ -34,3 +34,9 @@ type AuthService interface {
 	RefreshToken(token string) (newAccessToken string, newRefreshToken string, err error)
 	Logout() error
 }
+
+type InventoryService interface {
+	AdjustStock(storeID, productID uuid.UUID, userID *uuid.UUID, movementType string, quantityChanged int, notes string, evidenceURL string) error
+	GetStockHistory(storeID uuid.UUID, productID *uuid.UUID) ([]domain.InventoryMovement, error)
+}
+

@@ -33,39 +33,63 @@ func (s *authService) Register(user *domain.User, password string) error {
 	return s.userRepo.Create(user)
 }
 
-func (s *authService) Login(username, password string) (string, string, error) { 
+func (s *authService) Login(username, password string) (string, string, error) {
 	user, err := s.userRepo.FindByUsername(username)
 
 	if err != nil {
-		return "", "", errors.New("invalid credentials!") 
+		return "", "", errors.New("invalid credentials!")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
-		return "", "", errors.New("invalid credentials") 
+		return "", "", errors.New("invalid credentials")
 	}
 
+	accessToken, err := s.generateToken(user, 15*time.Minute)
+	if err != nil {
+		return "", "", err
+	}
 
-	accessToken, _ := s.generateToken(user, 15*time.Minute)
-	refreshToken, _ := s.generateToken(user, 7*24*time.Hour)
-	
-	return accessToken, refreshToken, nil 
+	refreshToken, err := s.generateToken(user, 7*24*time.Hour)
+	if err != nil {
+		return "", "", err
+	}
+
+	return accessToken, refreshToken, nil
+
 }
 
 func (s *authService) RefreshToken(tokenString string) (string, string, error) {
 	token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
-        return []byte(s.jwtSecret), nil
-    })
-    if err != nil || !token.Valid {
-        return "", "", errors.New("invalid refresh token")
-    }
-    claims := token.Claims.(jwt.MapClaims)
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, jwt.ErrTokenSignatureInvalid
+		}
+		return []byte(s.jwtSecret), nil
+	})
+	if err != nil || !token.Valid {
+		return "", "", errors.New("invalid refresh token")
+	}
 
-	storeID, err := uuid.Parse(claims["store_id"].(string))
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return "", "", errors.New("invalid refresh token claims")
+	}
+
+	storeIDValue, ok := claims["store_id"].(string)
+	if !ok {
+		return "", "", errors.New("invalid store_id in token")
+	}
+
+	storeID, err := uuid.Parse(storeIDValue)
 	if err != nil {
 		return "", "", errors.New("invalid store_id in token")
 	}
 
-	userID, err := uuid.Parse(claims["user_id"].(string))
+	userIDValue, ok := claims["user_id"].(string)
+	if !ok {
+		return "", "", errors.New("invalid user_id in token")
+	}
+
+	userID, err := uuid.Parse(userIDValue)
 	if err != nil {
 		return "", "", errors.New("invalid user_id in token")
 	}
@@ -75,27 +99,33 @@ func (s *authService) RefreshToken(tokenString string) (string, string, error) {
 		return "", "", errors.New("user not found")
 	}
 
+	accessToken, err := s.generateToken(user, 15*time.Minute)
+	if err != nil {
+		return "", "", err
+	}
 
-    accessToken, _ := s.generateToken(user, 15*time.Minute)
-    refreshToken, _ := s.generateToken(user, 7*24*time.Hour)
-    return accessToken, refreshToken, nil
+	refreshToken, err := s.generateToken(user, 7*24*time.Hour)
+	if err != nil {
+		return "", "", err
+	}
+
+	return accessToken, refreshToken, nil
 }
 
 func (s *authService) Logout() error {
-    return nil
+	return nil
 }
-
 
 func (s *authService) generateToken(user *domain.User, duration time.Duration) (string, error) {
 	claims := jwt.MapClaims{
-		"user_id": user.ID.String(),
+		"user_id":  user.ID.String(),
 		"store_id": user.StoreID.String(),
 		"username": user.Username,
-		"role": user.Role,
-		"exp": time.Now().Add(duration).Unix(),
-		"iat": time.Now().Unix(),
+		"role":     user.Role,
+		"exp":      time.Now().Add(duration).Unix(),
+		"iat":      time.Now().Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return  token.SignedString([]byte(s.jwtSecret))
+	return token.SignedString([]byte(s.jwtSecret))
 }

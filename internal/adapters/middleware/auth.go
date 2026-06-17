@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/anoulack007/core-pos/internal/core/domain"
 	"github.com/anoulack007/core-pos/pkg"
 	"github.com/anoulack007/core-pos/pkg/util"
 	"github.com/gin-gonic/gin"
@@ -59,12 +60,12 @@ func Auth(jwtSecret string) gin.HandlerFunc {
 			return
 		}
 
-		userID, err := util.GetUUIDClaim(claims, ContextUserIDKey)
-		if err != nil {
-			pkg.Error(c, http.StatusUnauthorized, "invalid user_id in token")
-			c.Abort()
-			return
-		}
+		// userID, err := util.GetUUIDClaim(claims, ContextUserIDKey)
+		// if err != nil {
+		// 	pkg.Error(c, http.StatusUnauthorized, "invalid user_id in token")
+		// 	c.Abort()
+		// 	return
+		// }
 
 		storeID, err := util.GetUUIDClaim(claims, ContextStoreIDKey)
 		if err != nil {
@@ -73,14 +74,21 @@ func Auth(jwtSecret string) gin.HandlerFunc {
 			return
 		}
 
-		role, ok := claims[ContextRoleKey].(string)
-		if !ok || strings.TrimSpace(role) == "" {
+		roleValue, ok := claims[ContextRoleKey].(string)
+		if !ok || strings.TrimSpace(roleValue) == "" {
 			pkg.Error(c, http.StatusUnauthorized, "invalid role in token")
 			c.Abort()
 			return
 		}
 
-		c.Set(ContextUserIDKey, userID)
+		role := domain.UserRole(roleValue)
+		if !role.IsValid() {
+			pkg.Error(c, http.StatusUnauthorized, "invalid role in token")
+			c.Abort()
+			return
+		}
+
+		c.Set(ContextRoleKey, role)
 		c.Set(ContextStoreIDKey, storeID)
 		c.Set(ContextRoleKey, role)
 		c.Next()
@@ -120,28 +128,28 @@ func AuthorizeStoreAccess() gin.HandlerFunc {
 	}
 }
 
-func RequireRoles(allowedRoles ...string) gin.HandlerFunc {
-	allowed := make(map[string]struct{}, len(allowedRoles))
+func RequireRoles(allowedRoles ...domain.UserRole) gin.HandlerFunc {
+	allowed := make(map[domain.UserRole]struct{}, len(allowedRoles))
 	for _, role := range allowedRoles {
 		allowed[role] = struct{}{}
 	}
 
 	return func(c *gin.Context) {
-		role, exists := c.Get(ContextRoleKey)
+		roleValue, exists := c.Get(ContextRoleKey)
 		if !exists {
 			pkg.Error(c, http.StatusForbidden, "role access denied")
 			c.Abort()
 			return
 		}
 
-		roleString, ok := role.(string)
+		role, ok := roleValue.(domain.UserRole)
 		if !ok {
 			pkg.Error(c, http.StatusForbidden, "role access denied")
 			c.Abort()
 			return
 		}
 
-		if _, ok := allowed[roleString]; !ok {
+		if _, ok := allowed[role]; !ok {
 			pkg.Error(c, http.StatusForbidden, "insufficient permissions")
 			c.Abort()
 			return

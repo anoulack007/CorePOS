@@ -35,6 +35,7 @@ func main() {
 		&domain.User{},
 		&domain.Category{},
 		&domain.Product{},
+		&domain.InventoryMovement{},
 	)
 
 	if err != nil {
@@ -49,16 +50,19 @@ func main() {
 	productRepo := repositories.NewProductRepository(db)
 	userRepo := repositories.NewUserRepository(db)
 	categoryRepo := repositories.NewCategoryRepository(db)
+	inventoryRepo := repositories.NewInventoryRepository(db)
 
 	// Services
 	productService := services.NewProductService(productRepo)
 	authService := services.NewAuthService(userRepo, cfg.JWTSecret)
 	categoryService := services.NewCategoryService(categoryRepo)
+	inventoryService := services.NewInventoryService(db, inventoryRepo, productRepo)
 	// Handlers
 	productHandler := handlers.NewProductHandler(productService)
 	storeHandler := handlers.NewStoreHandler(db)
 	authHandler := handlers.NewAuthHandler(authService, minioClient, cfg)
 	categoryHandler := handlers.NewCategoryHandler(categoryService)
+	inventoryHandler := handlers.NewInventoryHandler(inventoryService)
 
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
@@ -99,18 +103,25 @@ func main() {
 		{
 			products.GET("", productHandler.GetAll)
 			products.GET("/:id", productHandler.GetByID)
-			products.POST("", middleware.RequireRoles("owner", "admin"), productHandler.Create)
-			products.PUT("/:id", middleware.RequireRoles("owner", "admin"), productHandler.Update)
-			products.DELETE("/:id", middleware.RequireRoles("owner", "admin"), productHandler.Delete)
+			products.POST("", middleware.RequireRoles(domain.RoleOwner, domain.RoleAdmin), productHandler.Create)
+			products.PUT("/:id", middleware.RequireRoles(domain.RoleOwner, domain.RoleAdmin), productHandler.Update)
+			products.DELETE("/:id", middleware.RequireRoles(domain.RoleOwner, domain.RoleAdmin), productHandler.Delete)
+
 		}
 
 		categories := store.Group("/categories")
 		{
 			categories.GET("", categoryHandler.GetAll)
 			categories.GET("/:id", categoryHandler.GetByID)
-			categories.POST("", middleware.RequireRoles("owner", "admin"), categoryHandler.Create)
-			categories.PUT("/:id", middleware.RequireRoles("owner", "admin"), categoryHandler.Update)
-			categories.DELETE("/:id", middleware.RequireRoles("owner", "admin"), categoryHandler.Delete)
+			categories.POST("", middleware.RequireRoles(domain.RoleOwner, domain.RoleAdmin), categoryHandler.Create)
+			categories.PUT("/:id", middleware.RequireRoles(domain.RoleOwner, domain.RoleAdmin), categoryHandler.Update)
+			categories.DELETE("/:id", middleware.RequireRoles(domain.RoleOwner, domain.RoleAdmin), categoryHandler.Delete)
+		}
+
+		inventory := store.Group("/inventory")
+		{
+			inventory.POST("/adjust", middleware.RequireRoles(domain.RoleOwner, domain.RoleAdmin), inventoryHandler.AdjustStock)
+			inventory.GET("/history", middleware.RequireRoles(domain.RoleOwner, domain.RoleAdmin), inventoryHandler.GetHistory)
 		}
 	}
 
