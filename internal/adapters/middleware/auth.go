@@ -42,7 +42,7 @@ func Auth(jwtSecret string) gin.HandlerFunc {
 		}
 
 		token, err := jwt.Parse(tokenString, func(t *jwt.Token) (any, error) {
-			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			if t.Method != jwt.SigningMethodHS256 {
 				return nil, jwt.ErrTokenSignatureInvalid
 			}
 			return []byte(jwtSecret), nil
@@ -59,13 +59,18 @@ func Auth(jwtSecret string) gin.HandlerFunc {
 			c.Abort()
 			return
 		}
+		if tokenType, ok := claims["token_type"].(string); !ok || tokenType != "access" {
+			pkg.Error(c, http.StatusUnauthorized, "invalid access token type")
+			c.Abort()
+			return
+		}
 
-		// userID, err := util.GetUUIDClaim(claims, ContextUserIDKey)
-		// if err != nil {
-		// 	pkg.Error(c, http.StatusUnauthorized, "invalid user_id in token")
-		// 	c.Abort()
-		// 	return
-		// }
+		userID, err := util.GetUUIDClaim(claims, ContextUserIDKey)
+		if err != nil {
+			pkg.Error(c, http.StatusUnauthorized, "invalid user_id in token")
+			c.Abort()
+			return
+		}
 
 		storeID, err := util.GetUUIDClaim(claims, ContextStoreIDKey)
 		if err != nil {
@@ -88,7 +93,7 @@ func Auth(jwtSecret string) gin.HandlerFunc {
 			return
 		}
 
-		c.Set(ContextRoleKey, role)
+		c.Set(ContextUserIDKey, userID)
 		c.Set(ContextStoreIDKey, storeID)
 		c.Set(ContextRoleKey, role)
 		c.Next()

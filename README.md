@@ -43,6 +43,8 @@ docker-compose up -d
 
 ### 2. Configure `.env`
 
+Copy `.env.example` to `.env`, then replace `JWT_SECRET` and any non-local credentials.
+
 ```env
 DB_HOST=localhost
 DB_PORT=5432
@@ -88,13 +90,12 @@ The routes below are the ones actually registered in [main.go](/D:/Tutorial/Core
 | Method | Path | Description |
 |---|---|---|
 | `POST` | `/api/v1/stores` | Create a store |
-| `GET` | `/api/v1/stores` | List stores |
 
 ### Auth
 
 | Method | Path | Description |
 |---|---|---|
-| `POST` | `/api/v1/auth/register` | Register a user |
+| `POST` | `/api/v1/auth/register` | Register the first owner of a new store |
 | `POST` | `/api/v1/auth/login` | Login and receive access and refresh tokens |
 | `POST` | `/api/v1/auth/refresh` | Refresh tokens |
 | `POST` | `/api/v1/auth/logout` | Stateless logout |
@@ -119,15 +120,22 @@ The routes below are the ones actually registered in [main.go](/D:/Tutorial/Core
 | `PUT` | `/api/v1/stores/:storeId/categories/:id` | Update a category |
 | `DELETE` | `/api/v1/stores/:storeId/categories/:id` | Delete a category |
 
+### Inventory
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/api/v1/stores/:storeId/inventory/adjust` | Adjust stock and record a movement |
+| `GET` | `/api/v1/stores/:storeId/inventory/history` | List movements; optionally filter with `productId` |
+
 ## Services
 
 Service interfaces are defined in [services.go](/D:/Tutorial/CorePOS/internal/core/ports/services.go).
 
 | Service | File | Status | Responsibility |
 |---|---|---|---|
-| AuthService | [auth_service.go](/D:/Tutorial/CorePOS/internal/services/auth_service.go) | Implemented | Register, login, refresh token, logout |
+| AuthService | [auth_service.go](/D:/Tutorial/CorePOS/internal/services/auth_service.go) | Partial | Initial-owner registration, login and typed token refresh; revocable logout is pending |
 | ProductService | [product_service.go](/D:/Tutorial/CorePOS/internal/services/product_service.go) | Implemented | Product CRUD |
-| InventoryService | [inventory_service.go](/D:/Tutorial/CorePOS/internal/services/inventory_service.go) | Partial | Constructor exists, business logic is not implemented yet |
+| InventoryService | [inventory_service.go](/D:/Tutorial/CorePOS/internal/services/inventory_service.go) | Implemented | Transactional stock adjustment and movement history |
 | CategoryService | [category_service.go](/D:/Tutorial/CorePOS/internal/services/category_service.go) | Implemented | Category CRUD |
 | OrderService | [order_service.go](/D:/Tutorial/CorePOS/internal/services/order_service.go) | Stub | Not implemented |
 
@@ -471,14 +479,17 @@ CREATE TABLE subscription_histories (
 
 ## AutoMigrate Status
 
-The current `AutoMigrate` call in [main.go](/D:/Tutorial/CorePOS/cmd/api/main.go) only migrates these tables:
+The current `AutoMigrate` call in [main.go](/D:/Tutorial/CorePOS/cmd/api/main.go) migrates these tables:
 
 1. `stores`
 2. `users`
 3. `categories`
 4. `products`
-
-That means `orders`, `order_items`, `payments`, `inventory_movements`, and `subscription_histories` exist in the domain model but are not migrated at application startup yet.
+5. `inventory_movements`
+6. `orders`
+7. `order_items`
+8. `payments`
+9. `subscription_histories`
 
 ## Current Project Status
 
@@ -492,13 +503,15 @@ Implemented and usable now:
 6. JWT authentication and store-based authorization
 7. Role-based authorization for product/category write routes
 8. Avatar upload during registration
+9. Transactional inventory adjustment and history
 
 Not complete yet:
 
 1. Order service and routes are not implemented
-2. Inventory service logic is incomplete
-3. Upload route mentioned in older README content is not registered in `main.go`
-4. Role handling is present, but some internals still use raw string role checks instead of a full enum flow end-to-end
+2. Payment service and routes are not implemented
+3. Staff invitation and management routes are not implemented
+4. Logout does not yet revoke issued tokens
+5. Upload route mentioned in older README content is not registered in `main.go`
 
 ## Verification
 

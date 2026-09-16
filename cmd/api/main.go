@@ -36,6 +36,10 @@ func main() {
 		&domain.Category{},
 		&domain.Product{},
 		&domain.InventoryMovement{},
+		&domain.Order{},
+		&domain.OrderItem{},
+		&domain.Payment{},
+		&domain.SubscriptionHistory{},
 	)
 
 	if err != nil {
@@ -56,7 +60,7 @@ func main() {
 	productService := services.NewProductService(productRepo)
 	authService := services.NewAuthService(userRepo, cfg.JWTSecret)
 	categoryService := services.NewCategoryService(categoryRepo)
-	inventoryService := services.NewInventoryService(db, inventoryRepo, productRepo)
+	inventoryService := services.NewInventoryService(db, inventoryRepo)
 	// Handlers
 	productHandler := handlers.NewProductHandler(productService)
 	storeHandler := handlers.NewStoreHandler(db)
@@ -85,7 +89,6 @@ func main() {
 
 	// Store routes
 	api.POST("/stores", storeHandler.Create)
-	api.GET("/stores", storeHandler.GetAll)
 
 	auth := api.Group("/auth")
 	{

@@ -1,6 +1,9 @@
 package services
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/anoulack007/core-pos/internal/core/domain"
 	"github.com/anoulack007/core-pos/internal/core/ports"
 	"github.com/google/uuid"
@@ -10,27 +13,40 @@ type categoryService struct {
 	repo ports.CategoryRepository
 }
 
-func NewCategoryService(repo ports.CategoryRepository) ports.CategoryService{
-	return &categoryService{repo:repo}
+func NewCategoryService(repo ports.CategoryRepository) ports.CategoryService {
+	return &categoryService{repo: repo}
 }
 
-func(s *categoryService) GetAllCategories(storeID uuid.UUID) ([]domain.Category, error) {
+func (s *categoryService) GetAllCategories(storeID uuid.UUID) ([]domain.Category, error) {
 	return s.repo.FindAll(storeID)
 }
 
-func(s *categoryService) GetCategory(storeID, id uuid.UUID) (*domain.Category, error) {
-	return s.repo.FindByID(storeID,id)
+func (s *categoryService) GetCategory(storeID, id uuid.UUID) (*domain.Category, error) {
+	return s.repo.FindByID(storeID, id)
 }
 
-
-func(s *categoryService) CreateCategory(category *domain.Category) error {
+func (s *categoryService) CreateCategory(category *domain.Category) error {
+	if err := validateCategory(category); err != nil {
+		return err
+	}
 	return s.repo.Create(category)
 }
 
 func (s *categoryService) UpdateCategory(category *domain.Category) error {
+	if err := validateCategory(category); err != nil {
+		return err
+	}
 	return s.repo.Update(category)
 }
 
-func(s *categoryService) DeleteCategory(storeID, id uuid.UUID) error {
+func (s *categoryService) DeleteCategory(storeID, id uuid.UUID) error {
 	return s.repo.Delete(storeID, id)
+}
+
+func validateCategory(category *domain.Category) error {
+	category.Name = strings.TrimSpace(category.Name)
+	if category.Name == "" {
+		return fmt.Errorf("%w: name is required", domain.ErrInvalidCategory)
+	}
+	return nil
 }

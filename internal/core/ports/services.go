@@ -39,4 +39,3 @@ type InventoryService interface {
 	AdjustStock(storeID, productID uuid.UUID, userID *uuid.UUID, movementType string, quantityChanged int, notes string, evidenceURL string) error
 	GetStockHistory(storeID uuid.UUID, productID *uuid.UUID) ([]domain.InventoryMovement, error)
 }
-

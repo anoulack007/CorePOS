@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/anoulack007/core-pos/internal/core/domain"
 	"github.com/anoulack007/core-pos/pkg"
@@ -21,6 +22,11 @@ func (h *StoreHandler) Create(c *gin.Context) {
 	var store domain.Store
 	if err := c.ShouldBindJSON(&store); err != nil {
 		pkg.Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	store.Name = strings.TrimSpace(store.Name)
+	if store.Name == "" {
+		pkg.Error(c, http.StatusBadRequest, "store name is required")
 		return
 	}
 	if err := h.db.Create(&store).Error; err != nil {

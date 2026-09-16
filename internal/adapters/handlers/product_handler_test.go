@@ -1,52 +1,70 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
-	"github.com/brianvoe/gofakeit/v6"
+	"github.com/anoulack007/core-pos/internal/core/domain"
+	"github.com/anoulack007/core-pos/internal/services"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
-func setupProductRouter() *gin.Engine {
-	gin.SetMode(gin.TestMode)
-	r := gin.New()
-	r.POST("/products", func(c *gin.Context) {
-		var body map[string]interface{}
-		if err := c.ShouldBindJSON(&body); err != nil {
-			c.JSON(400, gin.H{"success": false, "error": err.Error()})
-			return
-		}
-		c.JSON(200, gin.H{"success": true})
-	})
-	return r
+type productRepositoryStub struct {
+	created *domain.Product
 }
 
-func TestProductCreate_200(t *testing.T) {
-	r := setupProductRouter()
-	body := fmt.Sprintf(`{"name":"%s", "price": %.2f, "stock_quantity": %d}`, gofakeit.ProductName(), gofakeit.Price(10, 1000), gofakeit.Number(1, 100))
+func (r *productRepositoryStub) FindAll(storeID uuid.UUID) ([]domain.Product, error) {
+	return nil, nil
+}
+func (r *productRepositoryStub) FindByID(storeID, id uuid.UUID) (*domain.Product, error) {
+	return nil, nil
+}
+func (r *productRepositoryStub) FindByBarcode(storeID uuid.UUID, barcode string) (*domain.Product, error) {
+	return nil, nil
+}
+func (r *productRepositoryStub) Create(product *domain.Product) error {
+	r.created = product
+	return nil
+}
+func (r *productRepositoryStub) Update(product *domain.Product) error { return nil }
+func (r *productRepositoryStub) Delete(storeID, id uuid.UUID) error   { return nil }
 
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/products", strings.NewReader(body))
+func TestProductCreateUsesProductionHandlerAndService(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	storeID := uuid.New()
+	repo := &productRepositoryStub{}
+	handler := NewProductHandler(services.NewProductService(repo))
+	router := gin.New()
+	router.POST("/stores/:storeId/products", handler.Create)
+
+	req := httptest.NewRequest(http.MethodPost, "/stores/"+storeID.String()+"/products", strings.NewReader(`{"name":"Coffee","price":45,"stock_quantity":2}`))
 	req.Header.Set("Content-Type", "application/json")
-	r.ServeHTTP(w, req)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
 
-	if w.Code != 200 {
-		t.Errorf("expected 200, got %d", w.Code)
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected status 201, got %d: %s", w.Code, w.Body.String())
+	}
+	if repo.created == nil || repo.created.StoreID != storeID || repo.created.Name != "Coffee" {
+		t.Fatalf("product was not passed through the production flow: %#v", repo.created)
 	}
 }
 
-func TestProductCreate_400(t *testing.T) {
-	r := setupProductRouter()
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/products", strings.NewReader(`{invalid json}`))
-	req.Header.Set("Content-Type", "application/json")
-	r.ServeHTTP(w, req)
+func TestProductCreateRejectsInvalidProduct(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	handler := NewProductHandler(services.NewProductService(&productRepositoryStub{}))
+	router := gin.New()
+	router.POST("/stores/:storeId/products", handler.Create)
 
-	if w.Code != 400 {
-		t.Errorf("expected 400, got %d", w.Code)
+	req := httptest.NewRequest(http.MethodPost, "/stores/"+uuid.NewString()+"/products", strings.NewReader(`{"name":"","price":-1}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d: %s", w.Code, w.Body.String())
 	}
 }

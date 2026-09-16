@@ -43,6 +43,25 @@ func TestAuth_AllowsValidBearerToken(t *testing.T) {
 	}
 }
 
+func TestAuth_RejectsRefreshToken(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	secret := "test-secret"
+	r := gin.New()
+	r.GET("/protected", Auth(secret), func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/protected", nil)
+	req.Header.Set("Authorization", "Bearer "+signedTokenWithType(t, secret, uuid.New(), uuid.New(), "admin", "refresh"))
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status 401, got %d", w.Code)
+	}
+}
+
 func TestAuthorizeStoreAccess_BlocksDifferentStore(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
@@ -114,12 +133,17 @@ func TestRequireRoles_AllowsAllowedRole(t *testing.T) {
 }
 
 func signedToken(t *testing.T, secret string, userID, storeID uuid.UUID, role string) string {
+	return signedTokenWithType(t, secret, userID, storeID, role, "access")
+}
+
+func signedTokenWithType(t *testing.T, secret string, userID, storeID uuid.UUID, role, tokenType string) string {
 	t.Helper()
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		ContextUserIDKey:  userID.String(),
 		ContextStoreIDKey: storeID.String(),
 		ContextRoleKey:    role,
+		"token_type":      tokenType,
 		"exp":             time.Now().Add(time.Hour).Unix(),
 		"iat":             time.Now().Unix(),
 	})

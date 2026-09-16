@@ -1,57 +1,26 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
-	"github.com/brianvoe/gofakeit/v6"
 	"github.com/gin-gonic/gin"
 )
 
-func setupStoreRouter() *gin.Engine {
+func TestStoreCreateRejectsBlankName(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	r := gin.New()
-	r.POST("/stores", func(c *gin.Context) {
-		var body map[string]interface{}
-		if err := c.ShouldBindJSON(&body); err != nil {
-			c.JSON(400, gin.H{"success": false, "error": err.Error()})
-			return
-		}
-		c.JSON(200, gin.H{"success": true, "data": body})
-	})
-	return r
-}
+	handler := NewStoreHandler(nil)
+	router := gin.New()
+	router.POST("/stores", handler.Create)
 
-func TestStoreCreate_200(t *testing.T) {
-	r := setupStoreRouter()
-
-	body := fmt.Sprintf(`{"name":"%s","plan_type":"%s"}`,
-		gofakeit.Company(),
-		gofakeit.RandomString([]string{"free", "pro", "enterprise"}),
-	)
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/stores", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/stores", strings.NewReader(`{"name":"  "}`))
 	req.Header.Set("Content-Type", "application/json")
-	r.ServeHTTP(w, req)
-
-	if w.Code != 200 {
-		t.Errorf("expected 200, got %d, body: %s", w.Code, w.Body.String())
-	}
-}
-
-func TestStoreCreate_400(t *testing.T) {
-	r := setupStoreRouter()
-
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/stores", strings.NewReader(`{invalid json}`))
-	req.Header.Set("Content-Type", "application/json")
-	r.ServeHTTP(w, req)
+	router.ServeHTTP(w, req)
 
-	if w.Code != 400 {
-		t.Errorf("expected 400, got %d", w.Code)
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d: %s", w.Code, w.Body.String())
 	}
 }

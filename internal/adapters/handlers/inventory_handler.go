@@ -1,8 +1,11 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 
+	"github.com/anoulack007/core-pos/internal/adapters/middleware"
+	"github.com/anoulack007/core-pos/internal/core/domain"
 	"github.com/anoulack007/core-pos/internal/core/ports"
 	"github.com/anoulack007/core-pos/pkg"
 	"github.com/gin-gonic/gin"
@@ -18,12 +21,11 @@ func NewInventoryHandler(service ports.InventoryService) *InventoryHandler {
 }
 
 type AdjustStockRequest struct {
-	ProductID       uuid.UUID  `json:"product_id" binding:"required"`
-	UserID          *uuid.UUID `json:"user_id"`
-	MovementType    string     `json:"movement_type" binding:"required"`
-	QuantityChanged int        `json:"quantity_changed" binding:"required"`
-	Notes           string     `json:"notes"`
-	EvidenceURL     string     `json:"evidence_url"`
+	ProductID       uuid.UUID `json:"product_id" binding:"required"`
+	MovementType    string    `json:"movement_type" binding:"required"`
+	QuantityChanged int       `json:"quantity_changed" binding:"required"`
+	Notes           string    `json:"notes"`
+	EvidenceURL     string    `json:"evidence_url"`
 }
 
 func (h *InventoryHandler) AdjustStock(c *gin.Context) {
@@ -38,8 +40,26 @@ func (h *InventoryHandler) AdjustStock(c *gin.Context) {
 		pkg.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
+	userID, ok := c.Get(middleware.ContextUserIDKey)
+	if !ok {
+		pkg.Error(c, http.StatusUnauthorized, "missing authenticated user")
+		return
+	}
+	authenticatedUserID, ok := userID.(uuid.UUID)
+	if !ok {
+		pkg.Error(c, http.StatusUnauthorized, "invalid authenticated user")
+		return
+	}
 
-	if err := h.service.AdjustStock(storeID, req.ProductID, req.UserID, req.MovementType, req.QuantityChanged, req.Notes, req.EvidenceURL); err != nil {
+	if err := h.service.AdjustStock(storeID, req.ProductID, &authenticatedUserID, req.MovementType, req.QuantityChanged, req.Notes, req.EvidenceURL); err != nil {
+		if errors.Is(err, domain.ErrInvalidInventoryMovement) {
+			pkg.Error(c, http.StatusBadRequest, err.Error())
+			return
+		}
+		if errors.Is(err, domain.ErrInsufficientStock) {
+			pkg.Error(c, http.StatusConflict, err.Error())
+			return
+		}
 		pkg.Error(c, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -71,6 +91,6 @@ func (h *InventoryHandler) GetHistory(c *gin.Context) {
 		pkg.Error(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	
+
 	pkg.Success(c, http.StatusOK, history)
 }

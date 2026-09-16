@@ -33,15 +33,14 @@ type UserRepository interface {
 	FindByID(storeID, id uuid.UUID) (*domain.User, error)
 	FindByUsername(username string) (*domain.User, error)
 	Create(user *domain.User) error
+	CreateInitialOwner(user *domain.User) error
 }
 type PaymentRepository interface {
 	Create(payment *domain.Payment) error
 	FindByOrderID(orderID uuid.UUID) ([]domain.Payment, error)
 }
 
-
 type InventoryRepository interface {
 	LogMovement(movement *domain.InventoryMovement) error
-	GetHistory(storeID uuid.UUID,productID *uuid.UUID) ([]domain.InventoryMovement, error)
+	GetHistory(storeID uuid.UUID, productID *uuid.UUID) ([]domain.InventoryMovement, error)
 }
-

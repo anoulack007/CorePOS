@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/anoulack007/core-pos/internal/core/domain"
@@ -8,6 +9,7 @@ import (
 	"github.com/anoulack007/core-pos/pkg"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type CategoryHandler struct {
@@ -18,7 +20,7 @@ func NewCategoryHandler(service ports.CategoryService) *CategoryHandler {
 	return &CategoryHandler{service: service}
 }
 
-func (h *CategoryHandler) GetAll(c *gin.Context){
+func (h *CategoryHandler) GetAll(c *gin.Context) {
 	storeID, err := uuid.Parse(c.Param("storeId"))
 
 	if err != nil {
@@ -47,19 +49,18 @@ func (h *CategoryHandler) GetByID(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 
 	if err != nil {
-		pkg.Error(c, http.StatusBadRequest,"Invalid category ID")
+		pkg.Error(c, http.StatusBadRequest, "Invalid category ID")
 		return
 	}
 
-	category, err := h.service.GetCategory(storeID,id)
+	category, err := h.service.GetCategory(storeID, id)
 	if err != nil {
-		pkg.Error(c, http.StatusNotFound,"Category not found")
+		pkg.Error(c, http.StatusNotFound, "Category not found")
 		return
 	}
 
-	pkg.Success(c, http.StatusOK,category)
+	pkg.Success(c, http.StatusOK, category)
 }
-
 
 func (h *CategoryHandler) Create(c *gin.Context) {
 	storeID, err := uuid.Parse(c.Param("storeId"))
@@ -71,13 +72,17 @@ func (h *CategoryHandler) Create(c *gin.Context) {
 
 	var category domain.Category
 	if err := c.ShouldBindJSON(&category); err != nil {
-		pkg.Error(c, http.StatusBadRequest,err.Error())
+		pkg.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	category.StoreID = storeID
 
 	if err := h.service.CreateCategory(&category); err != nil {
+		if errors.Is(err, domain.ErrInvalidCategory) {
+			pkg.Error(c, http.StatusBadRequest, err.Error())
+			return
+		}
 		pkg.Error(c, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -94,13 +99,12 @@ func (h *CategoryHandler) Update(c *gin.Context) {
 	}
 
 	id, err := uuid.Parse(c.Param("id"))
-	if err != nil{
+	if err != nil {
 		pkg.Error(c, http.StatusBadRequest, "Invalid category ID")
 		return
 	}
 
-
-	category, err := h.service.GetCategory(storeID,id)
+	category, err := h.service.GetCategory(storeID, id)
 
 	if err != nil {
 		pkg.Error(c, http.StatusNotFound, "Category not found")
@@ -116,13 +120,16 @@ func (h *CategoryHandler) Update(c *gin.Context) {
 	category.StoreID = storeID
 
 	if err := h.service.UpdateCategory(category); err != nil {
+		if errors.Is(err, domain.ErrInvalidCategory) {
+			pkg.Error(c, http.StatusBadRequest, err.Error())
+			return
+		}
 		pkg.Error(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	pkg.Success(c,http.StatusOK, category)
+	pkg.Success(c, http.StatusOK, category)
 }
-
 
 func (h *CategoryHandler) Delete(c *gin.Context) {
 	storeID, err := uuid.Parse(c.Param("storeId"))
@@ -140,6 +147,10 @@ func (h *CategoryHandler) Delete(c *gin.Context) {
 	}
 
 	if err := h.service.DeleteCategory(storeID, id); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			pkg.Error(c, http.StatusNotFound, "Category not found")
+			return
+		}
 		pkg.Error(c, http.StatusInternalServerError, err.Error())
 		return
 	}

@@ -1,51 +1,60 @@
 package handlers
 
 import (
-	"fmt"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
-	"github.com/brianvoe/gofakeit/v6"
+	"github.com/anoulack007/core-pos/internal/core/domain"
 	"github.com/gin-gonic/gin"
 )
 
-func setupAuthRouter() *gin.Engine {
-	gin.SetMode(gin.TestMode)
-	r := gin.New()
-	r.POST("/auth/login", func(c *gin.Context) {
-		var body map[string]interface{}
-		if err := c.ShouldBindJSON(&body); err != nil {
-			c.JSON(400, gin.H{"success": false, "error": err.Error()})
-			return
-		}
-		c.JSON(200, gin.H{"success": true, "access_token": gofakeit.LetterN(32)})
-	})
-	return r
+type authServiceStub struct {
+	loginErr error
 }
 
-func TestAuthLogin_200(t *testing.T) {
-	r := setupAuthRouter()
-	body := fmt.Sprintf(`{"username":"%s","password":"%s"}`, gofakeit.Username(), gofakeit.Password(true, true, true, true, false, 8))
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/auth/login", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	r.ServeHTTP(w, req)
+func (s *authServiceStub) Register(user *domain.User, password string) error { return nil }
+func (s *authServiceStub) Login(username, password string) (string, string, error) {
+	if s.loginErr != nil {
+		return "", "", s.loginErr
+	}
+	return "access-token", "refresh-token", nil
+}
+func (s *authServiceStub) RefreshToken(token string) (string, string, error) {
+	return "access-token", "refresh-token", nil
+}
+func (s *authServiceStub) Logout() error { return nil }
 
-	if w.Code != 200 {
-		t.Errorf("expected 200, got %d, body: %s", w.Code, w.Body.String())
+func TestAuthLoginUsesProductionHandler(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	handler := NewAuthHandler(&authServiceStub{}, nil, nil)
+	router := gin.New()
+	router.POST("/auth/login", handler.Login)
+
+	req := httptest.NewRequest(http.MethodPost, "/auth/login", strings.NewReader(`{"username":"owner","password":"strong-password"}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "access-token") {
+		t.Fatalf("expected successful production login response, got %d: %s", w.Code, w.Body.String())
 	}
 }
 
-func TestAuthLogin_400(t *testing.T) {
-	r := setupAuthRouter()
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/auth/login", strings.NewReader(`{invalid json}`))
-	req.Header.Set("Content-Type", "application/json")
-	r.ServeHTTP(w, req)
+func TestAuthLoginRejectsInvalidCredentials(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	handler := NewAuthHandler(&authServiceStub{loginErr: errors.New("invalid credentials")}, nil, nil)
+	router := gin.New()
+	router.POST("/auth/login", handler.Login)
 
-	if w.Code != 400 {
-		t.Errorf("expected 400, got %d", w.Code)
+	req := httptest.NewRequest(http.MethodPost, "/auth/login", strings.NewReader(`{"username":"owner","password":"wrong-password"}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status 401, got %d: %s", w.Code, w.Body.String())
 	}
 }

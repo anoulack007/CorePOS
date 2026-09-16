@@ -3,7 +3,7 @@ package dto
 type RegisterRequest struct {
 	StoreID  string `json:"store_id" binding:"required"`
 	Username string `json:"username" binding:"required"`
-	Password string `json:"password" binding:"required,min=6"`
+	Password string `json:"password" binding:"required,min=8"`
 	Role     string `json:"role"`
 	FullName string `json:"full_name"`
 	Email    string `json:"email"`
