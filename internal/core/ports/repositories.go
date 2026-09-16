@@ -32,6 +32,7 @@ type OrderRepository interface {
 type UserRepository interface {
 	FindByID(storeID, id uuid.UUID) (*domain.User, error)
 	FindByUsername(username string) (*domain.User, error)
+	FindAllByStoreID(storeID uuid.UUID) ([]domain.User, error)
 	Create(user *domain.User) error
 	CreateInitialOwner(user *domain.User) error
 }

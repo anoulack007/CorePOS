@@ -22,7 +22,8 @@ func main() {
 
 	// 2. Connect to DB
 	db, err := gorm.Open(postgres.Open(cfg.DSN()), &gorm.Config{
-		Logger: gormlogger.Default.LogMode(gormlogger.Silent),
+		Logger:         gormlogger.Default.LogMode(gormlogger.Silent),
+		TranslateError: true,
 	})
 	if err != nil {
 		log.Fatalf("❌ Failed to connect to database: %v", err)
@@ -55,18 +56,23 @@ func main() {
 	userRepo := repositories.NewUserRepository(db)
 	categoryRepo := repositories.NewCategoryRepository(db)
 	inventoryRepo := repositories.NewInventoryRepository(db)
+	orderRepo := repositories.NewOrderRepository(db)
 
 	// Services
 	productService := services.NewProductService(productRepo)
 	authService := services.NewAuthService(userRepo, cfg.JWTSecret)
 	categoryService := services.NewCategoryService(categoryRepo)
 	inventoryService := services.NewInventoryService(db, inventoryRepo)
+	userService := services.NewUserService(userRepo)
+	orderService := services.NewOrderService(db, orderRepo)
 	// Handlers
 	productHandler := handlers.NewProductHandler(productService)
 	storeHandler := handlers.NewStoreHandler(db)
 	authHandler := handlers.NewAuthHandler(authService, minioClient, cfg)
 	categoryHandler := handlers.NewCategoryHandler(categoryService)
 	inventoryHandler := handlers.NewInventoryHandler(inventoryService)
+	userHandler := handlers.NewUserHandler(userService)
+	orderHandler := handlers.NewOrderHandler(orderService)
 
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
@@ -125,6 +131,21 @@ func main() {
 		{
 			inventory.POST("/adjust", middleware.RequireRoles(domain.RoleOwner, domain.RoleAdmin), inventoryHandler.AdjustStock)
 			inventory.GET("/history", middleware.RequireRoles(domain.RoleOwner, domain.RoleAdmin), inventoryHandler.GetHistory)
+		}
+
+		users := store.Group("/users")
+		users.Use(middleware.RequireRoles(domain.RoleOwner, domain.RoleAdmin))
+		{
+			users.GET("", userHandler.GetAll)
+			users.POST("", userHandler.Create)
+		}
+
+		orders := store.Group("/orders")
+		{
+			orders.GET("", orderHandler.GetAll)
+			orders.GET("/:id", orderHandler.GetByID)
+			orders.POST("", orderHandler.Create)
+			orders.POST("/:id/void", middleware.RequireRoles(domain.RoleOwner, domain.RoleAdmin), orderHandler.Void)
 		}
 	}
 

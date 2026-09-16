@@ -1,0 +1,26 @@
+meta {
+  name: Create Staff
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/stores/{{storeId}}/users
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "username": "cashier1",
+    "password": "password123",
+    "role": "cashier",
+    "full_name": "Cashier One",
+    "email": "cashier1@example.com",
+    "phone": "1234567890"
+  }
+}

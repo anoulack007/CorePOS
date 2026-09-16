@@ -127,6 +127,22 @@ The routes below are the ones actually registered in [main.go](/D:/Tutorial/Core
 | `POST` | `/api/v1/stores/:storeId/inventory/adjust` | Adjust stock and record a movement |
 | `GET` | `/api/v1/stores/:storeId/inventory/history` | List movements; optionally filter with `productId` |
 
+### Staff
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/v1/stores/:storeId/users` | List store staff (owner/admin) |
+| `POST` | `/api/v1/stores/:storeId/users` | Create staff (owner: admin/cashier, admin: cashier only) |
+
+### Orders
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/v1/stores/:storeId/orders` | List store orders |
+| `GET` | `/api/v1/stores/:storeId/orders/:id` | Get an order with items and payments |
+| `POST` | `/api/v1/stores/:storeId/orders` | Checkout using server-side prices and transactional stock deduction |
+| `POST` | `/api/v1/stores/:storeId/orders/:id/void` | Void an unpaid order and restore stock (owner/admin) |
+
 ## Services
 
 Service interfaces are defined in [services.go](/D:/Tutorial/CorePOS/internal/core/ports/services.go).
@@ -137,7 +153,8 @@ Service interfaces are defined in [services.go](/D:/Tutorial/CorePOS/internal/co
 | ProductService | [product_service.go](/D:/Tutorial/CorePOS/internal/services/product_service.go) | Implemented | Product CRUD |
 | InventoryService | [inventory_service.go](/D:/Tutorial/CorePOS/internal/services/inventory_service.go) | Implemented | Transactional stock adjustment and movement history |
 | CategoryService | [category_service.go](/D:/Tutorial/CorePOS/internal/services/category_service.go) | Implemented | Category CRUD |
-| OrderService | [order_service.go](/D:/Tutorial/CorePOS/internal/services/order_service.go) | Stub | Not implemented |
+| UserService | [user_service.go](/D:/Tutorial/CorePOS/internal/services/user_service.go) | Implemented | Staff listing and role-controlled staff creation |
+| OrderService | [order_service.go](/D:/Tutorial/CorePOS/internal/services/order_service.go) | Implemented | Transactional checkout, stock movements, listing and unpaid-order void |
 
 ## Request Flow
 
@@ -236,6 +253,7 @@ Create Store
 -> Login
 -> Create Category
 -> Create Product
+-> Create Order
 ```
 
 That is because:
@@ -504,12 +522,14 @@ Implemented and usable now:
 7. Role-based authorization for product/category write routes
 8. Avatar upload during registration
 9. Transactional inventory adjustment and history
+10. Protected staff listing and creation
+11. Transactional order checkout, listing, detail, and unpaid-order void
 
 Not complete yet:
 
-1. Order service and routes are not implemented
-2. Payment service and routes are not implemented
-3. Staff invitation and management routes are not implemented
+1. Payment service and routes are not implemented
+2. Refund flow for paid orders is not implemented
+3. Staff update, deactivation, and invitation delivery are not implemented
 4. Logout does not yet revoke issued tokens
 5. Upload route mentioned in older README content is not registered in `main.go`
 

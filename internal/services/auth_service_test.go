@@ -22,6 +22,10 @@ func (r *authUserRepositoryStub) FindByUsername(username string) (*domain.User, 
 	return r.user, nil
 }
 
+func (r *authUserRepositoryStub) FindAllByStoreID(storeID uuid.UUID) ([]domain.User, error) {
+	return nil, nil
+}
+
 func (r *authUserRepositoryStub) Create(user *domain.User) error {
 	return nil
 }

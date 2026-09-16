@@ -36,6 +36,12 @@ func (r *userRepository) FindByUsername(username string) (*domain.User, error) {
 	return &user, nil
 }
 
+func (r *userRepository) FindAllByStoreID(storeID uuid.UUID) ([]domain.User, error) {
+	var users []domain.User
+	err := r.db.Where("store_id = ?", storeID).Order("created_at asc").Find(&users).Error
+	return users, err
+}
+
 func (r *userRepository) Create(user *domain.User) error {
 	return r.db.Create(user).Error
 }

@@ -1,0 +1,15 @@
+meta {
+  name: Void Order
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/stores/{{storeId}}/orders/{{orderId}}/void
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}

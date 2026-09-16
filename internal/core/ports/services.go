@@ -16,8 +16,13 @@ type ProductService interface {
 type OrderService interface {
 	GetAllOrders(storeID uuid.UUID) ([]domain.Order, error)
 	GetOrder(storeID, id uuid.UUID) (*domain.Order, error)
-	CreateOrder(order *domain.Order) error
-	VoidOrder(storeID, id uuid.UUID) error
+	CreateOrder(storeID, userID uuid.UUID, lines []OrderLineInput) (*domain.Order, error)
+	VoidOrder(storeID, id, actorUserID uuid.UUID) error
+}
+
+type OrderLineInput struct {
+	ProductID uuid.UUID
+	Quantity  int
 }
 
 type CategoryService interface {
@@ -33,6 +38,11 @@ type AuthService interface {
 	Login(username, password string) (string, string, error) // returns JWT token
 	RefreshToken(token string) (newAccessToken string, newRefreshToken string, err error)
 	Logout() error
+}
+
+type UserService interface {
+	GetStaff(storeID uuid.UUID) ([]domain.User, error)
+	CreateStaff(actorRole domain.UserRole, user *domain.User, password string) error
 }
 
 type InventoryService interface {
